@@ -7,6 +7,14 @@ está publicando —desde `## [X.Y.Z]` hasta el encabezado siguiente— y la peg
 se escriba aquí es lo que se lee en la página de descargas. La versión la sube `release-please` en los
 diez `package.json`; este archivo lo mantiene él cuando el PR de release se fusiona.
 
+## [0.11.3](https://github.com/zxuru/rona/compare/v0.11.2...v0.11.3) (2026-11-22)
+
+
+### Bug Fixes
+
+* **desktop:** el url del anfitrión sube a 2.5.9 (T410) ([8d7f9bf](https://github.com/zxuru/rona/commit/8d7f9bf1c826b56b04fc9f2e69b9ddc407f1e70e))
+* **web:** el PiP y el botón de saltar siguen al overlay (T409) ([9742ab7](https://github.com/zxuru/rona/commit/9742ab722a72aae9d31b309420b30a3eb6df0171))
+
 ## [0.11.2](https://github.com/zxuru/rona/compare/v0.11.1...v0.11.2) (2026-11-21)
 
 
