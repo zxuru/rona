@@ -1248,8 +1248,12 @@ body.player-extendido {
  * saltar, que vive abajo a la derecha, ni con la tarjeta del siguiente, que
  * ocupa el centro cuando el episodio termina.
  *
- * Se quedan visibles aunque los mandos se escondan: son la salida a «seguir
- * viendo en otra parte», y esconderlas con la banda las devolvía al menú.
+ * Se van con la banda cuando el overlay se retira: aunque sean la salida a
+ * «seguir viendo en otra parte», están encima de la imagen y dejarlas fijas
+ * mientras el resto desaparece tapa el fotograma que se quería ver. Vuelven
+ * con el puntero, igual que los mandos, y mientras algo de dentro tenga el
+ * foco no se esconden: quitarle a quien usa el teclado el mando enfocado es
+ * dejarlo pulsando a ciegas.
  */
 .player__acciones {
   position: absolute;
@@ -1258,6 +1262,17 @@ body.player-extendido {
   z-index: 3;
   display: flex;
   gap: var(--space-2);
+  transition: opacity var(--transition-normal);
+}
+
+.player__acciones[data-oculto="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.player__stage:focus-within .player__acciones {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .player__pip,

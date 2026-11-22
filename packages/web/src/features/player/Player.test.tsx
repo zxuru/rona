@@ -460,6 +460,9 @@ describe('la velocidad y la ventana flotante', () => {
       expect(html).toContain('aria-label="Ventana flotante"')
       expect(html).toContain('aria-pressed="false"')
       expect(html.indexOf('player__pip')).toBeLessThan(html.indexOf('player__settings'))
+      // La caja de mandos comparte el estado de los mandos: se esconde con el
+      // overlay cuando la reproducción deja de tener actividad.
+      expect(html).toMatch(/class="player__acciones"[^>]*data-oculto="false"/)
       expect(html).not.toContain('player__menu-action" aria-pressed="false">Ventana flotante')
     } finally {
       if (descriptor === undefined) {

@@ -994,6 +994,25 @@ describe('el reproductor sobre el fotograma', () => {
     }
   })
 
+  /**
+   * Los mandos de arriba son parte del overlay.
+   *
+   * La ventana flotante y el cast viven sobre la imagen, así que se retiran con
+   * la banda y vuelven con el puntero o con el foco. Dejarlos fijos mientras el
+   * resto desaparece tapaba el fotograma que se quería ver.
+   */
+  test('los mandos de arriba se esconden con el overlay y vuelven con el foco', async () => {
+    const css = await estructura()
+    const desde = css.indexOf('.player__acciones[data-oculto="true"]')
+
+    expect(desde, 'falta la regla que los esconde').toBeGreaterThan(-1)
+
+    const regla = css.slice(desde, css.indexOf('}', desde))
+    expect(regla).toContain('opacity: 0')
+    expect(regla).toContain('pointer-events: none')
+    expect(css).toContain('.player__stage:focus-within .player__acciones')
+  })
+
   test('el mando de seguir solo lleva su par de contraste', async () => {
     const css = await estructura()
     const selector = '.player__controls .button.player__autoplay[aria-pressed="true"]'

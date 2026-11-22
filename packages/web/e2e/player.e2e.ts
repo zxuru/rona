@@ -2561,6 +2561,38 @@ test.describe('el modo extendido', () => {
     await expect(mandos).toHaveCSS('opacity', '1')
   })
 
+  /**
+   * La ventana flotante es un mando de la imagen, no un cartel fijo.
+   *
+   * Vive arriba a la derecha, encima del fotograma: si los mandos se retiran y
+   * ella se queda, tapa justo lo que se quería ver. Se mide con la API
+   * simulada porque Chromium sin pantalla puede no ofrecer PiP.
+   */
+  test('la ventana flotante se esconde con el overlay y vuelve con el puntero', async ({
+    page,
+  }) => {
+    await simularVentanaFlotante(page)
+
+    await entrar(page)
+    await page.goto('/watch/fixture/aurora-nocturna')
+
+    await expect(page.locator('.player__pip')).toBeVisible({ timeout: 10_000 })
+
+    await page.getByRole('button', { name: 'Silenciar' }).click()
+    await page.getByRole('button', { name: 'Reproducir' }).click()
+    await page.evaluate(() => {
+      const activo = document.activeElement
+      if (activo instanceof HTMLElement) activo.blur()
+    })
+
+    const acciones = page.locator('.player__acciones')
+    await expect(acciones).toHaveCSS('opacity', '0', { timeout: 15_000 })
+
+    await page.locator('.player__stage').hover()
+    await expect(acciones).toHaveCSS('opacity', '1')
+    await expect(page.locator('.player__pip')).toBeVisible()
+  })
+
   test('la preferencia se recuerda y se configura en Ajustes', async ({ page }) => {
     await entrar(page)
     await page.goto('/settings')
