@@ -8,6 +8,7 @@ import {
   intervaloActivo,
   MARGEN_MAXIMO_S,
   MARGEN_MINIMO_S,
+  marcaDeSaltoVigente,
   margenValido,
   numeroDeEpisodio,
 } from './skip'
@@ -124,6 +125,22 @@ describe('la clave de un intervalo', () => {
     // Y el mismo intervalo da siempre la misma clave: es lo que permite
     // recordarlo sin depender de la identidad del objeto.
     expect(claveDeIntervalo('fixture:aurora-nocturna#1', { ...OP })).toBe(base)
+  })
+})
+
+describe('la marca de «ya saltado»', () => {
+  /**
+   * Sólo vale mientras se siga dentro del mismo intervalo.
+   *
+   * El caso que importa es el de fuera: la reproducción salta al final, la
+   * posición deja de estar en el intervalo y la marca tiene que olvidarse. Si
+   * sobrevive, volver a la intro no vuelve a ofrecer el botón nunca.
+   */
+  test('se conserva dentro del mismo intervalo y se olvida al salir', () => {
+    expect(marcaDeSaltoVigente('ep|op|5|20', 'ep|op|5|20')).toBe('ep|op|5|20')
+    expect(marcaDeSaltoVigente(undefined, 'ep|op|5|20')).toBeUndefined()
+    expect(marcaDeSaltoVigente('ep|ed|40|55', 'ep|op|5|20')).toBeUndefined()
+    expect(marcaDeSaltoVigente(undefined, undefined)).toBeUndefined()
   })
 })
 

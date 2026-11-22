@@ -813,8 +813,10 @@ export function Player(props: PlayerProps): ReactNode {
               viendo mientras se hace otra cosa, y esconderla detrás de Ajustes
               la hacía invisible. El estado sale de los eventos del video y no
               de haber pulsado el botón: el navegador puede rechazar la petición
-              y el mando no puede mentir. */}
-          <div className="player__acciones">
+              y el mando no puede mentir. Comparte `data-oculto` con la banda:
+              es un mando sobre la imagen, y si el overlay se retira para dejar
+              ver el fotograma, este se va con él. */}
+          <div className="player__acciones" data-oculto={reproduciendo && !mandos.visibles}>
             {pip.disponible ? (
               <button
                 type="button"

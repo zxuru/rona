@@ -39,6 +39,7 @@ import {
   destinoDeSalto,
   etiquetaDeSalto,
   intervaloActivo,
+  marcaDeSaltoVigente,
   numeroDeEpisodio,
 } from './skip'
 import {
@@ -365,11 +366,13 @@ export function useWatchPage(options: WatchPageOptions): WatchPageHandle {
 
   // Al salir del intervalo, la marca de «ya saltado» se borra: si se vuelve a
   // entrar, el botón vuelve a ofrecerse. Se borra con la clave y no con un
-  // temporizador porque lo que la retira es el hecho de haber salido.
+  // temporizador porque lo que la retira es el hecho de haber salido. La
+  // comparación incluye el caso de estar fuera —clave sin valor—: aquel
+  // `return` cuando `claveEnCurso` era `undefined` dejaba la marca pegada para
+  // siempre y el botón no reaparecía al volver a la intro.
   useEffect(() => {
-    if (claveEnCurso === undefined || claveEnCurso === saltado) return
-
-    setSaltado(undefined)
+    const vigente = marcaDeSaltoVigente(claveEnCurso, saltado)
+    if (vigente !== saltado) setSaltado(vigente)
   }, [claveEnCurso, saltado])
 
   const vecinos = useWatchNeighbours({

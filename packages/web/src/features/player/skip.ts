@@ -150,6 +150,23 @@ export function claveDeIntervalo(episodio: string, intervalo: SkipInterval): str
 }
 
 /**
+ * La marca de «ya saltado» que sigue valiendo con la posición nueva.
+ *
+ * El botón se retira en cuanto se pulsa, pero sólo mientras la reproducción siga
+ * dentro del mismo intervalo. Al salir —porque el salto dejó el final del
+ * intervalo, porque se movió la barra o porque empezó otro— la marca se olvida:
+ * si sobrevive, volver a entrar nunca vuelve a ofrecer el botón, aunque el
+ * intervalo entero siga por delante. De ahí `undefined` en cuanto las claves no
+ * coinciden, incluido el caso de estar fuera.
+ */
+export function marcaDeSaltoVigente(
+  claveEnCurso: string | undefined,
+  saltado: string | undefined,
+): string | undefined {
+  return claveEnCurso === saltado ? saltado : undefined
+}
+
+/**
  * El número de episodio que lleva la referencia, si lo lleva.
  *
  * La dirección del reproductor no siempre trae `?n=`: sólo lo escribe la ficha,
