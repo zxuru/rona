@@ -136,6 +136,10 @@ export async function conCiclo<T>(
       container,
       streamFetchImpl: fetchImpl,
       streamResolver: async () => ['93.184.216.34'],
+      // El arnés no sale a la red, y AniList es un tercero: sin este interruptor
+      // la búsqueda cruzada espera su plazo de 3 s cuando el runner deja la
+      // conexión colgada, y los tests de la vuelta completa se agotan.
+      anilistOffline: true,
     })
 
     const pedir = async (ruta: string, init?: RequestInit): Promise<Response> =>
