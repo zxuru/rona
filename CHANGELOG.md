@@ -7,6 +7,14 @@ está publicando —desde `## [X.Y.Z]` hasta el encabezado siguiente— y la peg
 se escriba aquí es lo que se lee en la página de descargas. La versión la sube `release-please` en los
 diez `package.json`; este archivo lo mantiene él cuando el PR de release se fusiona.
 
+## [0.11.4](https://github.com/zxuru/rona/compare/v0.11.3...v0.11.4) (2026-11-23)
+
+
+### Bug Fixes
+
+* **desktop:** actualizar cookie a 0.18.3 por RUSTSEC-2026-0594 ([cf21c1e](https://github.com/zxuru/rona/commit/cf21c1e2c11f88b826fa339267be5373a51a66b3))
+* **tests,desktop:** arnés sin red y cookie 0.18.3 (RUSTSEC-2026-0594) ([f5bd94f](https://github.com/zxuru/rona/commit/f5bd94f8d3d351916900b9e771ffb0d3b16490b0))
+
 ## [0.11.3](https://github.com/zxuru/rona/compare/v0.11.2...v0.11.3) (2026-11-22)
 
 
