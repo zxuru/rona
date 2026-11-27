@@ -15,7 +15,7 @@ git show <commit>^:tasks/done/T56.md
 ```
 
 Las tareas del plan vigente siguen cerrándose en `tasks/todo.md`; las de planes anteriores se
-quedan identificadas aquí. **278 fragmentos indexados**; 237 se identifican
+quedan identificadas aquí. **279 fragmentos indexados**; 238 se identifican
 sólo en este índice y su contenido vive en la historia.
 
 | Id | Título | Commit | Verificación | Dónde vive |
@@ -298,3 +298,4 @@ sólo en este índice y su contenido vive en la historia.
 | T410 | T410 — el `url` del anfitrión sube a 2.5.9 | fix(desktop): el url del anfitrión sube a 2.5.9 (T410). | `cargo tree --locked -i url` una sola entrada, 2.5.9 · `cargo check -p url --locked` 0 con target limpio · `cargo-deny` 0.21.0 `check advisories` **ok** · `bun test scripts/package.test.ts scripts/version.test.ts scripts/ci.test.ts` **74 pasan** · lint 0 errores (6 avisos previos) · mutación: volver el lock a `url` 2.5.8 deja `cargo-deny` en **advisories FAILED** con RUSTSEC-2026-0592. | este índice |
 | T411 | T411 — reportar problemas y abrir el repositorio desde Ajustes | feat(web): reportar problemas y abrir GitHub desde Ajustes (T411). | `bun test packages/web` **1475 pasan, 0 fallan** · `bun test` **4547 pasan, 0 fallan** · typecheck 0 · lint 0 errores (6 avisos previos) · `bun run e2e settings.e2e.ts` **7 pasan, 0 fallan** · mutación: cambiar `title` por `titlex` en `urlDelReporte` deja 2 pruebas en rojo. | este índice |
 | T413 | T413 — el reporte de un problema desde el pie | feat(web): el reporte rápido en el pie (T413). | `bun test packages/web` **1480 pasan, 0 fallan** · typecheck 0 · lint 0 errores (6 avisos previos) · `bun run e2e settings.e2e.ts soporte.e2e.ts` **10 pasan, 0 fallan** · el e2e mide que el diálogo abre, enfoca el asunto, `Esc` lo cierra y el `href` lleva el texto y el contexto. | este índice |
+| T414 | T414 — la poda de worktrees no se sale de su repositorio | fix(repo): la poda de worktrees no se sale de su repositorio (T414). | `bun run typecheck` 0 · `bun run lint` 0 (6 avisos de CSS previos) · `bun test` en el worktree **4 498 pasan, 0 fallan** · mutaciones: quitar `exigirRaiz('limpiar', …)` deja en rojo 2 pruebas y volver a nombrar toda rama en el informe deja 1. | este índice |
