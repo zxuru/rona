@@ -30,7 +30,7 @@ cabeceras y lista blanca, archivos, descargas en segundo plano y, si hace falta,
 - **El modo remoto no desaparece: se convierte en otro adaptador de red.** La misma aplicación puede
   hablar con su servidor local en proceso o con una instancia remota por HTTP. Sirve como atajo para
   publicar Android antes y como plan B si la migración local se atasca.
-- **Coste realista:** 22–30 semanas-persona para el producto autocontenido completo (F1–F4), con un
+- **Coste realista:** 23–31 semanas-persona para el producto autocontenido completo (F1–F4), con un
   senior y contingencia; el PiP obligatorio añade 1–2 semanas a F2/F3. El atajo «Android como cliente
   remoto» son 3–5 semanas y no requiere tocar el motor, pero **no es el producto elegido**.
 
@@ -60,6 +60,22 @@ cabeceras y lista blanca, archivos, descargas en segundo plano y, si hace falta,
   descargas móvil entra en F3.
 - **PiP es requisito.** No es «pulido opcional». Entra en F2 para Android: PiP de actividad sobre el
   WebView o player nativo; se elige con una medición. En iOS entra en F3 con AVPlayer/WKWebView.
+- **Android TV es Leanback en el mismo APK.** No hay un artefacto aparte: el mismo APK declara
+  `LEANBACK_LAUNCHER`, banner y `android.software.leanback` con `required=false`, y activa la UI de
+  TV por capacidad. El móvil sigue funcionando con el mismo binario.
+- **Firma fuera del repositorio.** La clave del APK vive en un keystore dedicado, cifrado y con copia
+  de seguridad; en CI, en secretos cifrados. **Nunca** se commitea, ni siquiera en un repo privado.
+- **Actualización automática del APK.** La app comprueba una versión, descarga el APK firmado y abre
+  el instalador del sistema. Android no permite una instalación silenciosa fuera de la tienda o de
+  un dispositivo gestionado: la descarga y la comprobación son automáticas, la confirmación es del
+  usuario.
+- **Proveedores listos por defecto.** El paquete incluido viene activado en el primer arranque, para
+  que el usuario pueda buscar sin instalar nada. Se puede desactivar por proveedor. Si el APK se
+  distribuye a terceros, la responsabilidad de esos proveedores es de quien lo distribuye; el
+  repositorio sigue sin incluir scrapers.
+- **Mínimos:** Android 8.0 (API 26) —es el primer Android con PiP de actividad y evita WebViews
+  antiguos— e iOS 16.0. En iOS, `ManagedMediaSource`/hls.js se usa desde 17.1; por debajo se va al
+  HLS nativo de WKWebView.
 
 ---
 
@@ -191,6 +207,46 @@ los plugins ni el reproductor. Eso lo pone la capa de adaptadores.
 - **Firma y CI.** Android necesita JDK, SDK, keystore y `versionCode`; iOS necesita runner macOS,
   certificado y perfil. Hoy el CI sólo compila Windows/Linux/macOS de escritorio.
 
+### 3.4 Firma, actualización y mínimos
+
+**La clave no va al repositorio.** Un APK se actualiza sólo si la versión nueva está firmada con la
+misma clave; si se pierde, los usuarios tienen que desinstalar y reinstalar. Por eso:
+
+- **Local:** un keystore dedicado fuera del workspace, por ejemplo
+  `%USERPROFILE%\.android\keystores\rona-release.jks`, con contraseña en un gestor de contraseñas y
+  una copia cifrada en un medio offline. El `debug.keystore` no vale para release.
+- **CI:** el keystore en base64 y sus contraseñas en **secretos cifrados** de GitHub Actions
+  (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
+  `ANDROID_KEY_PASSWORD`). El job de release usa un *environment* con revisión obligatoria. Nunca en
+  `tauri.conf.json`, en `gradle.properties` versionado ni en un `.env` commiteado.
+- **Rotación:** no se rota sin plan. Android permite `apksigner rotate` con linaje de firma, pero es
+  una operación deliberada; para un APK sideload, la clave estable es lo normal.
+
+**Actualización automática, con el límite de Android.** El flujo de F3:
+
+1. La app pide un `latest.json` por HTTPS con versión, URL del APK, SHA-256 y firma del manifiesto.
+2. Verifica la firma del manifiesto con una clave pública incrustada y el SHA-256 del APK.
+3. Descarga el APK a caché, reanudable, y comprueba que está firmado por el certificado esperado.
+4. Abre el instalador del sistema (`PackageInstaller`/`FileProvider`) con
+   `REQUEST_INSTALL_PACKAGES`. Android pide confirmación al usuario; **no hay instalación silenciosa**
+   fuera de Play Store o de un dispositivo gestionado (MDM/device owner).
+
+Eso es «automático» en la comprobación, la descarga y la verificación; la instalación es un paso del
+usuario. Si algún día se quiere silencio total, hay que pasar por Play Store o por gestión de
+dispositivos, no por un APK.
+
+**Mínimos y objetivos:**
+
+| Plataforma | Mínimo | Objetivo | Motivo |
+|---|---|---|---|
+| Android móvil | **8.0 / API 26** | API 36 (el que fije Tauri 2.12) | PiP de actividad desde API 26; WebView actualizable por Play |
+| Android TV | **8.0 / API 26** | API 36 | Mismo APK Leanback; PiP no se usa en TV |
+| iOS | **16.0** | iOS 18/26 según Tauri | PiP y WKWebView modernos; MSM sólo desde 17.1 |
+
+Tauri declara iOS 15 por defecto; se sube a 16.0 en `tauri.conf.json` y se prueba en el mínimo real,
+no sólo en el último. Android 7/API 24 se descarta: el PiP de actividad no existe y el WebView del
+fabricante puede quedarse sin actualizaciones.
+
 ---
 
 ## 4. Opciones para llevar la lógica del servidor
@@ -260,7 +316,7 @@ una app autocontenida hasta F2b.
 | Autocontenida | **Sí** | Sí | No | Sí en F2b |
 | Plugins de usuario | No (incluidos) | No | **Sí** | Sí en remoto |
 | Rendimiento/batería | Medio | **Alto** | Alto en playback | Medio/alto |
-| Coste | 22–30 sem | 26–52+ sem | **3–5 sem** | 6–10 sem hasta F2a |
+| Coste | 23–31 sem | 26–52+ sem | **3–5 sem** | 6–10 sem hasta F2a |
 | Mantenimiento | Un núcleo + adaptadores | Dos backends | Un servidor | Un núcleo + dos transportes |
 | Riesgo de tienda | Alto | Alto | Medio | Medio |
 
@@ -398,7 +454,7 @@ en cada commit; no se mezcla con F2.
 **Entra**
 
 - `mobile/` con Tauri Android; `frontendDist` apunta al build de `packages/web`; `mobile/` fuera de
-  `packages/` para no romper `scripts/workspaces.test.ts`.
+  `packages/` para no romper `scripts/workspaces.test.ts`. `minSdkVersion` **26** (Android 8.0).
 - Adaptadores Android:
   - `SqlDatabase` con comando Rust `rusqlite` (WAL, FKs, `busy_timeout`, transacciones).
   - `HttpClient` con `reqwest` + lista blanca + revalidación de redirecciones + topes.
@@ -408,22 +464,25 @@ en cada commit; no se mezcla con F2.
   - `Player`: `<video>` + hls.js; `playsInline`; Media Session; **PiP de actividad Android** (mover
     la actividad a PiP con controles de play/pausa/cerrar) o player nativo si el WebView no mantiene
     el video. Se mide antes de elegir; no se cierra F2 sin PiP funcionando.
-- **Paquete de proveedores incluido en el APK**: se inyecta desde un directorio externo al construir,
-  se valida con la conformidad de `provider-sdk` y no se descarga ni se evalúa en runtime. El
-  repositorio no incorpora scrapers; el paquete es del build, no del código fuente.
+- **Paquete de proveedores incluido en el APK y activo por defecto**: se inyecta desde un directorio
+  externo al construir, se valida con la conformidad de `provider-sdk` y no se descarga ni se evalúa
+  en runtime. El primer arranque ya permite buscar; se puede desactivar por proveedor. El repositorio
+  no incorpora scrapers; el paquete es del build, no del código fuente.
 - Biblioteca, búsqueda, ficha, episodios, reproductor, progreso, favoritos, historial, ajustes
   básicos. Descargas offline, cast, party, Discord, mpv y plugins de usuario: ocultos por capacidad.
 - Migraciones y importación de una base de escritorio (para pruebas y cambio de dispositivo).
-- APK firmado con `versionCode`; instalación por sideload. La actualización automática no entra en
-  F2: o se reinstala el APK o se diseña un actualizador propio en F3.
+- APK firmado con `versionCode` y keystore en secretos de CI; instalación por sideload. La
+  actualización automática entra en F3, no en F2: hasta entonces se reinstala el APK a mano.
 
 **Criterios de aceptación**
 
-- En un Android real o emulador API 34: abrir, buscar, abrir ficha, reproducir un episodio HLS,
-  pausar, buscar posición, cambiar calidad/subtítulo y reanudar en el segundo guardado.
+- En un Android real o emulador API 26 y API 34: abrir, buscar, abrir ficha, reproducir un episodio
+  HLS, pausar, buscar posición, cambiar calidad/subtítulo y reanudar en el segundo guardado.
 - **PiP:** entrar y salir desde el reproductor; el video sigue, los controles de PiP responden y al
   volver la posición no salta. Medido en un Android real; si el WebView no lo sostiene, se mide el
   player nativo y se declara el cambio.
+- El primer arranque ya muestra los proveedores incluidos y busca sin instalar nada; desactivar uno
+  lo quita de la búsqueda sin reiniciar.
 - Matar la app y abrirla: la biblioteca, el historial y el progreso siguen ahí.
 - 30 min de reproducción sin cortes > 2 s; seek < 1,5 s; primer fotograma < 3 s.
 - Sin desbordes a 320/390/430 px; objetivos táctiles ≥ 44 px; safe areas respetadas en vertical y
@@ -435,7 +494,7 @@ en cada commit; no se mezcla con F2.
 **Pendiente declarado:** descargas offline, audio en segundo plano, cast, plugins de usuario y
 actualización automática del APK.
 
-### Fase 3 — Pulido móvil e iOS (6–8 semanas)
+### Fase 3 — Pulido móvil, iOS y actualización (7–9 semanas)
 
 **Entra**
 
@@ -446,9 +505,9 @@ actualización automática del APK.
   service, notificaciones. El PiP ya entra en F2.
 - Descargas offline: motor móvil (Rust/URLSession/DownloadManager), almacenamiento de app,
   `MediaStore`/SAF, reanudación, cuota y borrado; reproducir sin red; sincronizar progreso al volver.
-- Actualización del APK: comprobar versión, descargar el APK firmado y abrir el instalador del
-  sistema; sin tienda y sin updater de Tauri. Se decide si entra en F3 o se queda en «reinstalar a
-  mano».
+- Actualización del APK: `latest.json` por HTTPS, firma del manifiesto, SHA-256 y certificado del
+  APK; descarga reanudable y apertura del instalador del sistema. Sin tienda y sin updater de Tauri.
+  Android exige confirmación del usuario; no se promete instalación silenciosa.
 - Rendimiento: virtualizar búsqueda/biblioteca, cache de imágenes, presupuesto de bundle.
 - Accesibilidad móvil: lector de pantalla, tamaños, contraste, reduced motion.
 
@@ -456,16 +515,19 @@ actualización automática del APK.
 
 - 30 min en segundo plano sin cortes (Android) y PiP entra/sale en Android (F2) e iOS (F3).
 - Un episodio descargado se reproduce en modo avión; el progreso se sincroniza al reconectar.
-- iOS: pantalla completa, HLS y PiP medidos en un iPhone real; si no hay dispositivo, **no se
-  declara medido**.
+- **Actualización:** una versión nueva se detecta, se descarga, se verifica y el instalador del
+  sistema abre el APK; un APK con hash o firma incorrectos se rechaza y se dice.
+- iOS: pantalla completa, HLS y PiP medidos en un iPhone 16/16 Pro o el mínimo iOS 16 real; si no
+  hay dispositivo, **no se declara medido**.
 - Presupuestos de la sección 7 cumplidos o desviación declarada con motivo.
 
 ### Fase 4 — Android TV (4–6 semanas)
 
 **Entra**
 
-- Manifiesto TV: `LEANBACK_LAUNCHER`, `android.software.leanback` con `required=false`, banner,
-  landscape, sin touchscreen requerido. Tauri ya genera parte; se verifica en el APK.
+- **El mismo APK**, sin artefacto aparte: manifiesto TV con `LEANBACK_LAUNCHER`,
+  `android.software.leanback` con `required=false`, banner, landscape y sin touchscreen requerido.
+  Tauri ya genera parte; se verifica en el APK. `minSdkVersion` 26.
 - Capacidad `platform: tv`, `input: dpad`. Navegación espacial propia o `@norbitmedia/…` (evaluar
   dependencia): foco inicial, orden por geometría, sin trampas, `Back` consistente.
 - UI de 10 pies: tipografía y controles grandes, overscan, sin hover; acciones visibles sin puntero.
@@ -474,8 +536,10 @@ actualización automática del APK.
 
 **Criterios de aceptación**
 
-- En un Android TV/Google TV real: arranca desde Leanback, se navega toda la app con D-pad, el foco
-  siempre se ve, no hay trampas ni saltos, `Back` no cierra la app donde no debe.
+- En un Android TV/Google TV real: el **mismo APK** se instala y arranca desde Leanback, se navega
+  toda la app con D-pad, el foco siempre se ve, no hay trampas ni saltos, `Back` no cierra la app
+  donde no debe.
+- El mismo APK sigue abriendo en un móvil y conserva su UI táctil.
 - Reproducción 1080p 30 min sin cortes > 2 s; memoria estable; mando remoto controla todo.
 - Sin hover ni dependencia de ratón.
 
@@ -556,7 +620,9 @@ Son **objetivos a medir**, no medidas. Se calibran con el primer dispositivo de 
 | **PiP obligatorio en Android** | Media | Alto | PiP de actividad o player nativo; medir en F2; no cerrar sin él |
 | Plugins de usuario | **Cierto** | Alto | Proveedores incluidos en build; instalación sólo escritorio; nunca runtime |
 | Legalidad del APK | Alta | Alto | Sideload evita la tienda, no el contenido; revisión legal antes de distribuir |
-| Actualización del APK | Media | Medio | Firmar, comprobar versión y abrir instalador; o reinstalar a mano |
+| Pérdida de la clave de firma | Media | Alto | Keystore fuera del repo, gestor de contraseñas, copia cifrada offline, secretos de CI |
+| Actualización del APK | Media | Medio | `latest.json` firmado, SHA-256, certificado esperado, `FileProvider`; Android confirma |
+| Proveedores por defecto | Media | Alto | Sólo se distribuyen con derechos; el repo no los incluye; el APK personal es la vía segura |
 | Dos bases / sincronización | Media | Alto | Fuente única; local es caché en remoto; sin sync bidireccional v1 |
 | CI Android/iOS | Media | Medio | Jobs, secretos, keystore, macOS; declarar lo no medido |
 | CSP/Tauri (`worker-src`, `ipc:`) | Media | Medio | CSP por plataforma; probar hls.js y SQLite con worker |
@@ -565,13 +631,16 @@ Son **objetivos a medir**, no medidas. Se calibran con el primer dispositivo de 
 
 **Decisiones que no puede tomar el código:**
 
-1. ¿Android TV es el mismo APK con Leanback o un artefacto aparte?
-2. ¿Qué Android/iOS mínimos? (Tauri: Android 7/API 24, iOS 15 por defecto.)
-3. ¿Quién firma y mantiene la clave del APK?
-4. ¿La actualización del APK es automática en F3 o se reinstala a mano?
-5. ¿El PiP de Android se hace con la actividad WebView o con player nativo? Lo decide la medición de
+1. ¿El `latest.json` y los APK se publican en GitHub Releases o en otro host? Hace falta una URL
+   HTTPS estable para el actualizador.
+2. ¿El paquete de proveedores se distribuye con el APK o se compila sólo para uso personal? Es la
+   decisión legal que queda abierta.
+3. ¿La copia de seguridad del keystore la custodia una persona o un gestor compartido? La clave no
+   se pierde, pero la custodia hay que decidirla.
+4. ¿El PiP de Android se hace con la actividad WebView o con player nativo? Lo decide la medición de
    F2, no una preferencia.
-6. ¿Se distribuye el paquete de proveedores con el APK o se compila sólo para uso personal?
+5. ¿La versión de Tauri fijada soporta target API 36? Se verifica al abrir `mobile/`; si no, se usa
+   el último que soporte y se declara.
 
 ---
 
