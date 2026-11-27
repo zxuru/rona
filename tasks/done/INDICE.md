@@ -15,7 +15,7 @@ git show <commit>^:tasks/done/T56.md
 ```
 
 Las tareas del plan vigente siguen cerrándose en `tasks/todo.md`; las de planes anteriores se
-quedan identificadas aquí. **279 fragmentos indexados**; 238 se identifican
+quedan identificadas aquí. **280 fragmentos indexados**; 239 se identifican
 sólo en este índice y su contenido vive en la historia.
 
 | Id | Título | Commit | Verificación | Dónde vive |
@@ -299,3 +299,4 @@ sólo en este índice y su contenido vive en la historia.
 | T411 | T411 — reportar problemas y abrir el repositorio desde Ajustes | feat(web): reportar problemas y abrir GitHub desde Ajustes (T411). | `bun test packages/web` **1475 pasan, 0 fallan** · `bun test` **4547 pasan, 0 fallan** · typecheck 0 · lint 0 errores (6 avisos previos) · `bun run e2e settings.e2e.ts` **7 pasan, 0 fallan** · mutación: cambiar `title` por `titlex` en `urlDelReporte` deja 2 pruebas en rojo. | este índice |
 | T413 | T413 — el reporte de un problema desde el pie | feat(web): el reporte rápido en el pie (T413). | `bun test packages/web` **1480 pasan, 0 fallan** · typecheck 0 · lint 0 errores (6 avisos previos) · `bun run e2e settings.e2e.ts soporte.e2e.ts` **10 pasan, 0 fallan** · el e2e mide que el diálogo abre, enfoca el asunto, `Esc` lo cierra y el `href` lleva el texto y el contexto. | este índice |
 | T414 | T414 — la poda de worktrees no se sale de su repositorio | fix(repo): la poda de worktrees no se sale de su repositorio (T414). | `bun run typecheck` 0 · `bun run lint` 0 (6 avisos de CSS previos) · `bun test` en el worktree **4 498 pasan, 0 fallan** · mutaciones: quitar `exigirRaiz('limpiar', …)` deja en rojo 2 pruebas y volver a nombrar toda rama en el informe deja 1. | este índice |
+| T415 | T415 — cerrar no vacía un worktree en uso | fix(repo): cerrar no vacía un worktree en uso (T415). | `bun run typecheck` 0 · `bun run lint` 0 (6 avisos de CSS previos) · `bun test` en el worktree **4 499 pasan, 0 fallan** · mutación: quitar la sonda `enUso` de `cerrar` deja en rojo `cerrar > no vacía el worktree que un proceso está usando` · medido antes del arreglo: un `cwd` vivo sobre el worktree hace que `git worktree remove` borre su contenido y salga con 255. | este índice |
