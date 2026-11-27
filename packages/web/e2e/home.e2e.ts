@@ -469,6 +469,48 @@ test.describe('la home', () => {
   })
 
   /**
+   * El filtro y la marquesina no dejan una franja muerta.
+   *
+   * Las dos son bandas a sangre: el filtro es una barra de mandos con su borde
+   * inferior y la marquesina el campo del destacado. El aire de un tramo entre
+   * ellas era una franja negra sin nada que separar. Y detrás de la marquesina,
+   * el tramo vacío de «continuar viendo» tampoco pide el descanso de un muro: es
+   * una nota de dos líneas. Las dos cosas se miden en píxeles, que es lo único
+   * que distingue un hueco de un descanso.
+   */
+  test('el filtro y la marquesina no dejan una franja muerta', async ({ page }) => {
+    await entrar(page)
+    await esperarApp(page)
+
+    const seguir = page.locator('.seccion', {
+      has: page.getByRole('heading', { name: 'Continuar viendo' }),
+    })
+
+    await expect(page.locator('.marquesina')).toBeVisible()
+    await expect(seguir.locator('.tramo-vacio')).toBeVisible()
+
+    const [filtro, heroe, cajaSeguir] = await Promise.all([
+      page.locator('.formato').boundingBox(),
+      page.locator('.marquesina').boundingBox(),
+      seguir.boundingBox(),
+    ])
+
+    // La marquesina empieza donde acaba el filtro, sin margen en medio.
+    expect(heroe?.y ?? Number.POSITIVE_INFINITY).toBeCloseTo(
+      (filtro?.y ?? 0) + (filtro?.height ?? 0),
+      0,
+    )
+
+    // El descanso detrás de la marquesina es el tenue, no el de un tramo lleno:
+    // a 1280 px son 38,4 frente a 76,8.
+    const hueco =
+      (cajaSeguir?.y ?? Number.POSITIVE_INFINITY) - ((heroe?.y ?? 0) + (heroe?.height ?? 0))
+
+    expect(hueco).toBeGreaterThan(0)
+    expect(hueco).toBeLessThan(50)
+  })
+
+  /**
    * Con algo que retomar, «continuar viendo» va antes de la marquesina.
    *
    * La fila existía en el documento y no en la primera pantalla: empezaba en 910 px

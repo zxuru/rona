@@ -1229,25 +1229,37 @@
 }
 
 /*
+ * Pero la marquesina va pegada al filtro de formato.
+ *
+ * Las dos son bandas a sangre y el filtro ya trae su propio borde inferior: el
+ * aire de un tramo entre ellas dejaba una franja negra sin nada que separar. Antes
+ * de T372c el filtro no existía y la marquesina colgaba de la cabecera; la regla
+ * de arriba no previó ese hermano nuevo.
+ */
+.home > .formato + .marquesina {
+  margin-block-start: 0;
+}
+
+/* El descanso detrás de la marquesina es el de siempre: la banda a sangre acaba de
+   llenar la pantalla y lo que venga cambia de registro. Va antes de la regla de los
+   tramos vacíos para que un tramo sin piezas pueda pedir el suyo, que es más corto. */
+.home > .marquesina + .seccion {
+  margin-block-start: var(--seccion-aire);
+}
+
+/*
  * Un tramo que sólo es un renglón descansa menos.
  *
  * Sin piezas, el tramo se explica en una línea —eso ya estaba— pero seguía
  * pidiendo el aire de un muro de carteles: en una instalación recién abierta, tres
  * de los siete tramos no tenían nada y cada uno se llevaba el descanso de un tramo
  * lleno para decirlo. El descanso sigue a la masa: lo que no tiene nada que
- * separar no separa tanto.
+ * separar no separa tanto. También detrás de la marquesina: «continuar viendo» sin
+ * nada a medias es una nota de dos líneas, no un muro de carteles.
  */
 .home > * + .seccion:has(.tramo-vacio),
 .home > .seccion:has(.tramo-vacio) + * {
   margin-block-start: var(--seccion-aire-tenue);
-}
-
-/* Y después de la marquesina el descanso es el de siempre, aunque el tramo que
-   venga sea un renglón: ahí el que cambia de registro es el otro —una banda a
-   sangre que acaba de llenar la pantalla— y el hueco corto la dejaba pegada a la
-   lista. Va después de la regla de arriba, que pesa lo mismo. */
-.home > .marquesina + .seccion {
-  margin-block-start: var(--seccion-aire);
 }
 
 /*
