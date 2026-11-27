@@ -87,11 +87,13 @@ test.describe('Soporte', () => {
     await esperarApp(page)
     await page.goto('/settings')
 
-    const repositorio = page.getByRole('link', { name: /zxuru\/rona/ })
+    const seccion = page.locator('#soporte')
+
+    const repositorio = seccion.getByRole('link', { name: /zxuru\/rona/ })
     await expect(repositorio).toHaveAttribute('href', 'https://github.com/zxuru/rona')
     await expect(repositorio).toHaveAttribute('target', '_blank')
 
-    const incidencias = page.getByRole('link', { name: 'Ver las incidencias abiertas' })
+    const incidencias = seccion.getByRole('link', { name: 'Ver las incidencias abiertas' })
     await expect(incidencias).toHaveAttribute('href', 'https://github.com/zxuru/rona/issues')
   })
 
@@ -100,10 +102,14 @@ test.describe('Soporte', () => {
     await esperarApp(page)
     await page.goto('/settings')
 
-    await page.getByLabel('Asunto').fill('No abre la ficha')
-    await page.getByLabel('Qué ha pasado').fill('Pulso en una tarjeta y se queda cargando.')
+    // El formulario de Ajustes, no el del diálogo del pie: los dos están
+    // montados y el de Ajustes es el que se está mirando.
+    const seccion = page.locator('#soporte')
 
-    const abrir = page.getByRole('link', { name: 'Abrir el reporte en GitHub' })
+    await seccion.getByLabel('Asunto').fill('No abre la ficha')
+    await seccion.getByLabel('Qué ha pasado').fill('Pulso en una tarjeta y se queda cargando.')
+
+    const abrir = seccion.getByRole('link', { name: 'Abrir el reporte en GitHub' })
     const href = await abrir.getAttribute('href')
     expect(href).not.toBeNull()
 

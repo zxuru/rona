@@ -1643,6 +1643,31 @@ details[open] > .library__settings-summary .library__settings-flecha {
   font-size: var(--text-xs);
 }
 
+/*
+ * El reporte dentro de su diálogo.
+ *
+ * El cuerpo del diálogo ya tiene su relleno y su desplazamiento; aquí sólo se
+ * reparte el formulario en una columna. El pie del diálogo enlaza a las
+ * incidencias abiertas, con el mismo dibujo de salida que el resto.
+ */
+.reporte__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.reporte__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.reporte .notice__foot a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 /* Los enlaces de la sección son enlaces, no botones: sin subrayado de serie. */
 a.settings__link {
   text-decoration: none;
@@ -1985,7 +2010,7 @@ a.settings__link {
    * del contenido, pero el pie va después y sin esta reserva la barra fija le
    * tapaba el renglón.
    */
-  .shell__footer-nota {
+  .shell__footer-interior {
     padding-block-end: calc(var(--barra-alto) + var(--space-6) + env(safe-area-inset-bottom));
   }
 

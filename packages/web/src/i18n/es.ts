@@ -444,6 +444,10 @@ export const messages: Messages = {
   'settings.support.open': 'Abrir el reporte en GitHub',
   'settings.support.open.help':
     'Necesitas una cuenta de GitHub. Se abre una pestaña nueva con el borrador; nada se envía solo.',
+  // La entrada del pie: el repositorio y el reporte rápido, en un diálogo.
+  'soporte.footer.github': 'Abrir el repositorio en GitHub',
+  'soporte.footer.report': 'Reportar un problema',
+  'soporte.dialog.close': 'Cerrar',
   'settings.security.title': 'Antes de copiar un plugin, lee esto',
   'settings.security.body':
     'Los plugins se ejecutan sin sandbox, con tus permisos. Un plugin puede leer y escribir lo mismo que tú. Cópialos sólo si sabes de dónde vienen.',

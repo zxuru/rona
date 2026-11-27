@@ -24,6 +24,7 @@ import { ProfilePage } from './features/profile/ProfilePage'
 import { SearchPage } from './features/search/SearchPage'
 import { SettingsPage } from './features/settings/SettingsPage'
 import { useAppTheme } from './features/settings/useSettings'
+import { AccionesDelPie } from './features/soporte/AccionesDelPie'
 import { TastePage } from './features/taste/TastePage'
 import { formatoFromPath, sinTipo, tieneTipoRetirado } from './features/tipo/tipo'
 import { t } from './i18n'
@@ -237,7 +238,10 @@ function Shell(props: {
       */}
       {props.sinPie === true ? null : (
         <footer className="shell__footer">
-          <p className="shell__footer-nota">{t(LOCALE, 'app.footer')}</p>
+          <div className="shell__footer-interior">
+            <p className="shell__footer-nota">{t(LOCALE, 'app.footer')}</p>
+            <AccionesDelPie />
+          </div>
         </footer>
       )}
     </div>
