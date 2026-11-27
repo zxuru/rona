@@ -439,3 +439,41 @@ describe('limpiar', () => {
     PLAZO_MS,
   )
 })
+
+describe('cerrar', () => {
+  const PLAZO_MS = 30_000
+
+  /**
+   * El worktree que se está usando no se vacía.
+   *
+   * Medido en Windows: un directorio que es el `cwd` de un proceso vivo no se puede renombrar,
+   * y `git worktree remove` responde **borrando todo su contenido** y fallando al quitar la
+   * raíz (255). Ese es el destrozo que dejó un worktree sin archivos versionados ni
+   * `node_modules`. Por eso la sonda va antes de tocar nada.
+   *
+   * Sólo mide en Windows: en POSIX el `cwd` de un proceso no impide retirar el directorio.
+   */
+  const soloWindows = test.skipIf(process.platform !== 'win32')
+
+  soloWindows(
+    'no vacía el worktree que un proceso está usando',
+    async () => {
+      const repo = repoDePrueba('en-uso')
+      const ruta = abrir('T85', repo)
+      const proceso = Bun.spawn(['bun', '-e', 'await Bun.sleep(5000)'], {
+        cwd: ruta,
+        stdout: 'ignore',
+        stderr: 'ignore',
+      })
+
+      try {
+        expect(() => cerrar('T85', repo)).toThrow(/está en uso/)
+        expect(existsSync(`${ruta}/README.md`)).toBe(true)
+      } finally {
+        proceso.kill()
+        await proceso.exited
+      }
+    },
+    PLAZO_MS,
+  )
+})
