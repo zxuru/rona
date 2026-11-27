@@ -6,6 +6,7 @@ import {
   mkdtempSync,
   openSync,
   readFileSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs'
@@ -290,6 +291,36 @@ describe('limpiar', () => {
   )
 
   test(
+    'nombra sólo las ramas que siguen en pie',
+    () => {
+      const repo = repoDePrueba('ramas')
+      // El nombre del directorio sugiere `tarea/T89`, pero esa rama no existe: nombrarla
+      // como «sigue en pie» es una mentira del informe.
+      resto(repo, 'T89')
+      resto(repo, 'T88')
+      correr(['branch', nombreRama('T88'), 'main'], repo)
+
+      const lineas: string[] = []
+      const escribir = console.log
+      console.log = (...partes: unknown[]) => {
+        lineas.push(partes.join(' '))
+      }
+
+      try {
+        limpiar(true, repo)
+      } finally {
+        console.log = escribir
+      }
+
+      const salida = lineas.join('\n')
+
+      expect(salida).toContain('tarea/T88')
+      expect(salida).not.toContain('tarea/T89')
+    },
+    PLAZO_MS,
+  )
+
+  test(
     'no borra un directorio con cambios sin commitear',
     () => {
       const repo = repoDePrueba('cambios')
@@ -345,6 +376,65 @@ describe('limpiar', () => {
 
       expect(existsSync(ruta)).toBe(false)
       expect(resumen.borrados).toEqual(['T94'])
+    },
+    PLAZO_MS,
+  )
+
+  /**
+   * La poda no está acotada por su argumento.
+   *
+   * `git` resuelve hacia arriba: pedirle la poda a un subdirectorio del repositorio exterior
+   * hace que responda ese repositorio y que se pode *su* `.worktrees/`. El canario es la
+   * medida: sin la guarda, este `limpiar` se lo lleva por delante.
+   */
+  test(
+    'no toca el .worktrees del repositorio que lo contiene',
+    () => {
+      const exterior = repoDePrueba('exterior')
+      const canario = resto(exterior, 'T93')
+      const subdirectorio = `${exterior}/docs`
+      mkdirSync(subdirectorio, { recursive: true })
+
+      expect(() => limpiar(true, subdirectorio)).toThrow(/no es la raíz de un repositorio/)
+      expect(existsSync(canario)).toBe(true)
+    },
+    PLAZO_MS,
+  )
+
+  test(
+    'con el repositorio ilegible no borra nada',
+    () => {
+      const repo = repoDePrueba('ilegible')
+      const canario = resto(repo, 'T92')
+
+      // Sin `.git`, git sube al repositorio que lo contiene —en la suite, el worktree donde
+      // corre— y la poda caería sobre el `.worktrees/` de ese, no sobre el suyo.
+      renameSync(`${repo}/.git`, `${repo}/.git.fuera`)
+
+      try {
+        expect(() => limpiar(true, repo)).toThrow(/no es la raíz de un repositorio/)
+        expect(existsSync(canario)).toBe(true)
+      } finally {
+        renameSync(`${repo}/.git.fuera`, `${repo}/.git`)
+      }
+    },
+    PLAZO_MS,
+  )
+
+  test(
+    'desde un worktree poda el .worktrees del repositorio principal',
+    () => {
+      const repo = repoDePrueba('desde-worktree')
+      const registrado = abrir('T91', repo)
+      const suelto = resto(repo, 'T90')
+
+      // El uso documentado: se pide la poda con la raíz del worktree en el que estás y se
+      // poda el `.worktrees/` del repositorio principal, sin tocar el worktree registrado.
+      const resumen = limpiar(true, registrado)
+
+      expect(resumen.borrados).toEqual(['T90'])
+      expect(existsSync(suelto)).toBe(false)
+      expect(existsSync(registrado)).toBe(true)
     },
     PLAZO_MS,
   )
