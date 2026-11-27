@@ -28,6 +28,7 @@ import {
   openSync,
   readdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   statSync,
 } from 'node:fs'
@@ -141,6 +142,54 @@ function exigirRaiz(orden: string, raiz: string): void {
   }
 }
 
+/**
+ * ¿Hay un proceso con el worktree como directorio de trabajo?
+ *
+ * En Windows un directorio que es el `cwd` de un proceso vivo no se puede renombrar, y
+ * `git worktree remove` responde **borrando todo su contenido** y fallando al quitar la raíz:
+ * el checkout se queda vacío y el comando sale con 255. Medido. Renombrar y deshacer no toca
+ * nada, así que es la sonda más barata. En POSIX el `cwd` no impide retirar el directorio y la
+ * sonda pasa, que es lo correcto: ahí no hay nada que proteger.
+ */
+function enUso(ruta: string): boolean {
+  const sonda = `${ruta}.en-uso`
+
+  try {
+    renameSync(ruta, sonda)
+  } catch {
+    return true
+  }
+
+  renameSync(sonda, ruta)
+
+  return false
+}
+
+/**
+ * Retira lo que `git worktree remove` deja atrás.
+ *
+ * Su borrado es best-effort: sale con 0 y deja lo que no pudo quitar —medido con `.worktrees/T414`,
+ * que quedó con `.tmp/`, `node_modules/` y `packages/`—. Ese resto ya no es un worktree y es el que
+ * llenaba `.worktrees/`. Se reintenta aquí; lo que se resista se dice, en vez de dejarlo mudo.
+ */
+function retirarRestos(ruta: string): void {
+  if (!existsSync(ruta)) {
+    return
+  }
+
+  try {
+    rmSync(ruta, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+  } catch {
+    // Se informa abajo; `force` no perdona un archivo bloqueado.
+  }
+
+  if (existsSync(ruta)) {
+    console.log(
+      `Aviso: quedan archivos en ${ruta} que no se dejan borrar. Retíralos con \`bun run scripts/agente.ts limpiar --si\`.`,
+    )
+  }
+}
+
 export function abrir(id: string, raiz: string = RAIZ): string {
   const limpio = idDeTask(id)
   exigirRaiz('abrir', raiz)
@@ -194,6 +243,12 @@ export function cerrar(id: string, raiz: string = RAIZ): void {
     throw new Error(`no hay worktree en ${ruta}`)
   }
 
+  if (enUso(ruta)) {
+    throw new Error(
+      `cerrar ${limpio}: ${ruta} está en uso por otro proceso (su directorio de trabajo). Ciérralo y repite; no se toca nada.`,
+    )
+  }
+
   const sucio = exigir(git(['status', '--porcelain'], ruta), `no se pudo leer ${ruta}`)
   if (sucio !== '') {
     throw new Error(`quedan cambios sin commitear en ${limpio}:\n${sucio}`)
@@ -215,7 +270,13 @@ export function cerrar(id: string, raiz: string = RAIZ): void {
     `${limpio} no se pudo integrar en ${RAMA_BASE}`,
   )
 
-  exigir(git(['worktree', 'remove', ruta], raiz), `no se pudo borrar el worktree ${ruta}`)
+  const baja = git(['worktree', 'remove', ruta], raiz)
+  // `git worktree remove` puede borrar el contenido y fallar sólo al quitar la raíz.
+  retirarRestos(ruta)
+  if (baja.code !== 0 && existsSync(ruta)) {
+    throw new Error(`no se pudo borrar el worktree ${ruta}: ${baja.err || baja.out}`)
+  }
+
   git(['branch', '-d', rama], raiz)
   git(['update-ref', '-d', claim], raiz)
 
@@ -235,7 +296,18 @@ export function abandonar(id: string, confirmado: boolean, raiz: string = RAIZ):
   exigirRaiz('abandonar', raiz)
   const ruta = rutaWorktree(raiz, limpio)
 
-  git(['worktree', 'remove', '--force', ruta], raiz)
+  if (existsSync(ruta) && enUso(ruta)) {
+    throw new Error(
+      `abandonar ${limpio}: ${ruta} está en uso por otro proceso (su directorio de trabajo). Ciérralo y repite; no se toca nada.`,
+    )
+  }
+
+  const baja = git(['worktree', 'remove', '--force', ruta], raiz)
+  retirarRestos(ruta)
+  if (baja.code !== 0 && existsSync(ruta)) {
+    throw new Error(`no se pudo borrar el worktree ${ruta}: ${baja.err || baja.out}`)
+  }
+
   git(['branch', '-D', nombreRama(limpio)], raiz)
   git(['update-ref', '-d', nombreClaim(limpio)], raiz)
 
