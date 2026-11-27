@@ -90,6 +90,10 @@ bun run scripts/agente.ts abandonar T60 --si   # destructivo: tira la rama sin i
 
 El plan y la auditoría viven en `docs/plan-movil-tv.md`. Estas reglas no se negocian por fase.
 
+**Decisiones vigentes (2026-11-27):** app **autocontenida**; **proveedores incluidos** en el build,
+sin plugins de usuario en móvil; distribución por **APK firmado** (sin tienda); **descargas offline
+en F3**; **PiP es requisito** (Android en F2, iOS en F3).
+
 - **Un solo núcleo.** La lógica de aplicación vive una vez, en `packages/core`/`packages/server`, y
   se comparte. Prohibido copiarla a `mobile/`, a Rust o a Kotlin. `mobile/` es cáscara y adaptadores.
 - **Adaptadores, no `if (platform)`.** `storage`, `network`, `files` y `player` se consumen por

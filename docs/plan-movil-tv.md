@@ -30,29 +30,36 @@ cabeceras y lista blanca, archivos, descargas en segundo plano y, si hace falta,
 - **El modo remoto no desaparece: se convierte en otro adaptador de red.** La misma aplicación puede
   hablar con su servidor local en proceso o con una instancia remota por HTTP. Sirve como atajo para
   publicar Android antes y como plan B si la migración local se atasca.
-- **Coste realista:** 20–28 semanas-persona para el producto autocontenido completo (F1–F4), con un
-  senior y contingencia. El atajo «Android como cliente remoto» son 3–5 semanas y no requiere tocar
-  el motor.
+- **Coste realista:** 22–30 semanas-persona para el producto autocontenido completo (F1–F4), con un
+  senior y contingencia; el PiP obligatorio añade 1–2 semanas a F2/F3. El atajo «Android como cliente
+  remoto» son 3–5 semanas y no requiere tocar el motor, pero **no es el producto elegido**.
 
 **Bloqueos que no resuelve la arquitectura:**
 
 1. **Plugins de usuario.** Un `.ts` descargado y ejecutado con `import()` dinámico no cabe en un
-   WebView sandboxeado ni en las reglas de código dinámico de las tiendas. En móvil hay dos salidas:
-   proveedores **incluidos en el build** (paquete de proveedores, no marketplace) o modo remoto. La
-   instalación de plugins queda como función sólo de escritorio.
-2. **Tiendas y legalidad.** Apple 5.2.3 y 2.5.2, y la política de Google sobre descargas y código
-   dinámico, siguen aplicando. Un APK sideload o una PWA evitan al revisor, no el riesgo legal.
+   WebView sandboxeado. **Decidido:** el APK lleva los proveedores incluidos en el build y no acepta
+   plugins en runtime; la instalación de plugins queda como función sólo de escritorio. El paquete
+   de proveedores es del build, no del repositorio.
+2. **Legalidad del APK.** Sin tienda desaparece la revisión de Apple/Google, no el riesgo del
+   contenido. La distribución por APK sideload sigue siendo una decisión legal, no técnica.
 3. **iOS.** Requiere un Mac, Xcode y decidir el reproductor: HLS nativo de WKWebView o
-   `ManagedMediaSource` + hls.js. No es «lo mismo que Android con otro icono».
+   `ManagedMediaSource` + hls.js. El PiP es requisito y en iOS pasa por AVPlayer/WKWebView. No es
+   «lo mismo que Android con otro icono».
 
-**Puertas de decisión antes de F2** (las contesta producto, no el código):
+**Decisiones tomadas el 2026-11-27** (las contesta producto, no el código):
 
-- ¿La app tiene que funcionar con el PC apagado? Si no, el atajo remoto es la opción correcta.
-- ¿Los proveedores pueden ir incluidos en el APK, sin instalación en runtime? Si no, no hay app
-  autocontenida.
-- ¿Hace falta tienda o vale APK/PWA? Si es tienda, el modelo de plugins actual no pasa.
-- ¿Las descargas offline son requisito de F2 o de F3? Si son de F2, el motor de descargas móvil
-  entra antes y el calendario sube.
+- **Autocontenida.** La app funciona sin el PC encendido. Se descarta el atajo remoto como producto;
+  el transporte remoto queda sólo como adaptador opcional y plan B.
+- **Proveedores incluidos.** El APK lleva un paquete de proveedores compilado en el build. No hay
+  instalación de plugins en runtime en móvil; esa función sigue siendo sólo de escritorio. El
+  paquete de proveedores vive fuera del repositorio y se inyecta al construir, como ya se hace con
+  los plugins reales de escritorio.
+- **APK.** Distribución por APK firmado, sin tienda. Esto evita la revisión de Play/App Store, no el
+  riesgo legal del contenido. Hay que resolver firma, `versionCode` y actualización del APK.
+- **Descargas offline en F3.** F2 entrega biblioteca, búsqueda, reproductor y progreso; el motor de
+  descargas móvil entra en F3.
+- **PiP es requisito.** No es «pulido opcional». Entra en F2 para Android: PiP de actividad sobre el
+  WebView o player nativo; se elige con una medición. En iOS entra en F3 con AVPlayer/WKWebView.
 
 ---
 
@@ -253,7 +260,7 @@ una app autocontenida hasta F2b.
 | Autocontenida | **Sí** | Sí | No | Sí en F2b |
 | Plugins de usuario | No (incluidos) | No | **Sí** | Sí en remoto |
 | Rendimiento/batería | Medio | **Alto** | Alto en playback | Medio/alto |
-| Coste | 20–28 sem | 26–52+ sem | **3–5 sem** | 6–10 sem hasta F2a |
+| Coste | 22–30 sem | 26–52+ sem | **3–5 sem** | 6–10 sem hasta F2a |
 | Mantenimiento | Un núcleo + adaptadores | Dos backends | Un servidor | Un núcleo + dos transportes |
 | Riesgo de tienda | Alto | Alto | Medio | Medio |
 
@@ -386,7 +393,7 @@ tienda ni revisión legal. Cada fase termina con criterios medidos, dispositivos
 **Riesgo principal:** el refactor toca casi todo el servidor. Se hace por pasos, con el listón verde
 en cada commit; no se mezcla con F2.
 
-### Fase 2 — Android funcional (6–8 semanas)
+### Fase 2 — Android funcional y autocontenido (7–9 semanas)
 
 **Entra**
 
@@ -398,45 +405,59 @@ en cada commit; no se mezcla con F2.
   - `MediaTransport`: proxy local de sólo medios en `127.0.0.1` (puerto efímero, ticket aleatorio) o
     *loader* de hls.js por IPC; se elige con una medición.
   - `FileStore` con `tauri-plugin-fs` (sólo directorios de app).
-  - `Player`: `<video>` + hls.js; `playsInline`; Media Session.
-- Proveedores incluidos en el build; sin instalación en runtime.
+  - `Player`: `<video>` + hls.js; `playsInline`; Media Session; **PiP de actividad Android** (mover
+    la actividad a PiP con controles de play/pausa/cerrar) o player nativo si el WebView no mantiene
+    el video. Se mide antes de elegir; no se cierra F2 sin PiP funcionando.
+- **Paquete de proveedores incluido en el APK**: se inyecta desde un directorio externo al construir,
+  se valida con la conformidad de `provider-sdk` y no se descarga ni se evalúa en runtime. El
+  repositorio no incorpora scrapers; el paquete es del build, no del código fuente.
 - Biblioteca, búsqueda, ficha, episodios, reproductor, progreso, favoritos, historial, ajustes
-  básicos. Descargas, cast, party, Discord, mpv y plugins de usuario: ocultos.
+  básicos. Descargas offline, cast, party, Discord, mpv y plugins de usuario: ocultos por capacidad.
 - Migraciones y importación de una base de escritorio (para pruebas y cambio de dispositivo).
+- APK firmado con `versionCode`; instalación por sideload. La actualización automática no entra en
+  F2: o se reinstala el APK o se diseña un actualizador propio en F3.
 
 **Criterios de aceptación**
 
 - En un Android real o emulador API 34: abrir, buscar, abrir ficha, reproducir un episodio HLS,
   pausar, buscar posición, cambiar calidad/subtítulo y reanudar en el segundo guardado.
+- **PiP:** entrar y salir desde el reproductor; el video sigue, los controles de PiP responden y al
+  volver la posición no salta. Medido en un Android real; si el WebView no lo sostiene, se mide el
+  player nativo y se declara el cambio.
 - Matar la app y abrirla: la biblioteca, el historial y el progreso siguen ahí.
-- 30 min de reproducción sin cortes > 2 s; seek < 1,5 s; primer fotograma < 3 s en LAN/local.
+- 30 min de reproducción sin cortes > 2 s; seek < 1,5 s; primer fotograma < 3 s.
 - Sin desbordes a 320/390/430 px; objetivos táctiles ≥ 44 px; safe areas respetadas en vertical y
   horizontal.
-- Sin `401/403` inesperados; el ticket se renueva.
-- `bun test` de escritorio sigue verde; el APK se genera en CI con `versionCode`.
+- Sin `401/403` inesperados; el ticket se renueva. Sin red, la app dice qué falta y no se queda en
+  negro.
+- `bun test` de escritorio sigue verde; el APK firmado se genera en CI con `versionCode`.
 
-**Pendiente declarado:** descargas offline, PiP, segundo plano, cast y plugins de usuario.
+**Pendiente declarado:** descargas offline, audio en segundo plano, cast, plugins de usuario y
+actualización automática del APK.
 
-### Fase 3 — Pulido móvil e iOS (5–7 semanas)
+### Fase 3 — Pulido móvil e iOS (6–8 semanas)
 
 **Entra**
 
 - iOS: Tauri iOS, WKWebView; decidir HLS nativo vs `ManagedMediaSource`; botón de pantalla completa
-  con `webkitEnterFullscreen` o modo extendido; PiP con la puerta WebKit correcta.
-- Android: `wakeLock`, bloqueo de orientación en reproducción, PiP, audio en segundo plano con
-  foreground service, notificaciones.
+  con `webkitEnterFullscreen` o modo extendido; **PiP con AVPlayer/WKWebView**, medido en un iPhone
+  real.
+- Android: `wakeLock`, bloqueo de orientación en reproducción, audio en segundo plano con foreground
+  service, notificaciones. El PiP ya entra en F2.
 - Descargas offline: motor móvil (Rust/URLSession/DownloadManager), almacenamiento de app,
   `MediaStore`/SAF, reanudación, cuota y borrado; reproducir sin red; sincronizar progreso al volver.
+- Actualización del APK: comprobar versión, descargar el APK firmado y abrir el instalador del
+  sistema; sin tienda y sin updater de Tauri. Se decide si entra en F3 o se queda en «reinstalar a
+  mano».
 - Rendimiento: virtualizar búsqueda/biblioteca, cache de imágenes, presupuesto de bundle.
 - Accesibilidad móvil: lector de pantalla, tamaños, contraste, reduced motion.
 
 **Criterios de aceptación**
 
-- 30 min en segundo plano sin cortes (Android) y PiP entra/sale (Android; iOS si el WebView lo
-  permite).
+- 30 min en segundo plano sin cortes (Android) y PiP entra/sale en Android (F2) e iOS (F3).
 - Un episodio descargado se reproduce en modo avión; el progreso se sincroniza al reconectar.
-- iOS: pantalla completa y reproducción HLS medidas en un iPhone real; si no hay dispositivo, **no
-  se declara medido**.
+- iOS: pantalla completa, HLS y PiP medidos en un iPhone real; si no hay dispositivo, **no se
+  declara medido**.
 - Presupuestos de la sección 7 cumplidos o desviación declarada con motivo.
 
 ### Fase 4 — Android TV (4–6 semanas)
@@ -515,7 +536,8 @@ Son **objetivos a medir**, no medidas. Se calibran con el primer dispositivo de 
 
 **CI:**
 
-- Android: job con JDK/SDK/NDK, `tauri android build`, APK de debug y `versionCode`.
+- Android: job con JDK/SDK/NDK, `tauri android build`, APK firmado de release (y debug para
+  pruebas) y `versionCode`.
 - iOS: job macOS con Xcode, sólo cuando haya runner y certificado; si no, se declara.
 - No meter `mobile/` en `packages/`: `scripts/workspaces.test.ts` espera nueve paquetes.
 - `scripts/version.ts` debe incluir el manifiesto móvil si se le da versión propia.
@@ -530,9 +552,11 @@ Son **objetivos a medir**, no medidas. Se calibran con el primer dispositivo de 
 | SQLite síncrono → asíncrono | Alta | Alto | Puerto `SqlDatabase`; adaptador nativo con transacciones; pruebas de migración |
 | Puente JS↔Rust por segmento HLS | Media | Alto | Medir pronto; si falla, proxy local de medios |
 | hls.js en TV box | Media | Alto | Medir; adaptador ExoPlayer en F4 si no llega |
-| iOS MSE/PiP/fullscreen | Alta | Alto | HLS nativo o MSM; dispositivo real; no declarar sin medir |
-| Plugins de usuario | **Cierto** | Alto | Incluidos en build o modo remoto; nunca runtime |
-| Tienda/legal | Alta | Alto | APK/PWA; revisión legal antes de tienda |
+| iOS MSE/PiP/fullscreen | Alta | Alto | HLS nativo o MSM; AVPlayer/PiP; dispositivo real; no declarar sin medir |
+| **PiP obligatorio en Android** | Media | Alto | PiP de actividad o player nativo; medir en F2; no cerrar sin él |
+| Plugins de usuario | **Cierto** | Alto | Proveedores incluidos en build; instalación sólo escritorio; nunca runtime |
+| Legalidad del APK | Alta | Alto | Sideload evita la tienda, no el contenido; revisión legal antes de distribuir |
+| Actualización del APK | Media | Medio | Firmar, comprobar versión y abrir instalador; o reinstalar a mano |
 | Dos bases / sincronización | Media | Alto | Fuente única; local es caché en remoto; sin sync bidireccional v1 |
 | CI Android/iOS | Media | Medio | Jobs, secretos, keystore, macOS; declarar lo no medido |
 | CSP/Tauri (`worker-src`, `ipc:`) | Media | Medio | CSP por plataforma; probar hls.js y SQLite con worker |
@@ -541,14 +565,13 @@ Son **objetivos a medir**, no medidas. Se calibran con el primer dispositivo de 
 
 **Decisiones que no puede tomar el código:**
 
-1. ¿App autocontenida o cliente del PC?
-2. ¿Proveedores incluidos o plugins de usuario?
-3. ¿Tienda o APK/PWA?
-4. ¿Descargas offline en F2 o F3?
-5. ¿Segundo plano/PiP son requisito?
-6. ¿Android TV es un APK aparte o el mismo con Leanback?
-7. ¿Qué Android/iOS mínimos? (Tauri: Android 7/API 24, iOS 15 por defecto.)
-8. ¿Quién firma y mantiene los certificados?
+1. ¿Android TV es el mismo APK con Leanback o un artefacto aparte?
+2. ¿Qué Android/iOS mínimos? (Tauri: Android 7/API 24, iOS 15 por defecto.)
+3. ¿Quién firma y mantiene la clave del APK?
+4. ¿La actualización del APK es automática en F3 o se reinstala a mano?
+5. ¿El PiP de Android se hace con la actividad WebView o con player nativo? Lo decide la medición de
+   F2, no una preferencia.
+6. ¿Se distribuye el paquete de proveedores con el APK o se compila sólo para uso personal?
 
 ---
 
