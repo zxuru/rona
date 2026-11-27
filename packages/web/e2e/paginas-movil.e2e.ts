@@ -84,6 +84,14 @@ test.describe('el reproductor de una descarga en el móvil', () => {
     await expect(page.locator('.library-player__badge')).toBeVisible()
     await expect(page.locator('.library-player__back')).toBeVisible()
 
+    // El reporte también vive en esta pantalla, que no lleva pie.
+    const reporte = page.getByRole('button', { name: 'Reportar un problema' })
+    await expect(reporte).toBeVisible()
+    await reporte.click()
+    await expect(page.getByRole('dialog', { name: 'Reportar un problema' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog', { name: 'Reportar un problema' })).toBeHidden()
+
     // A 390 px el reproductor ya es «compacto»: los saltos de diez segundos y el
     // volumen no caben en la barra y viven en el menú. Lo que tiene que estar a
     // la vista es lo de siempre: play, ajustes y pantalla completa.

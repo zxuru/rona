@@ -56,4 +56,21 @@ test.describe('el reporte del pie', () => {
     await expect(repositorio).toHaveAttribute('href', 'https://github.com/zxuru/rona')
     await expect(repositorio).toHaveAttribute('target', '_blank')
   })
+
+  test('en el reproductor, el mando compacto abre el reporte', async ({ page }) => {
+    await entrar(page)
+    await page.goto('/watch/fixture/aurora-nocturna%233')
+
+    // El pie no se pinta aquí: el mando vive en el encabezado de la pantalla.
+    const boton = page.getByRole('button', { name: 'Reportar un problema' })
+    await expect(boton).toBeVisible()
+    await boton.click()
+
+    const dialogo = page.getByRole('dialog', { name: 'Reportar un problema' })
+    await expect(dialogo).toBeVisible()
+    await expect(dialogo.getByLabel('Asunto')).toBeFocused()
+
+    await page.keyboard.press('Escape')
+    await expect(dialogo).toBeHidden()
+  })
 })

@@ -3,6 +3,7 @@ import { renderToString } from 'react-dom/server'
 import { AccionesDelPie } from './AccionesDelPie'
 import { FormularioReporte } from './FormularioReporte'
 import { ReporteDialog } from './ReporteDialog'
+import { ReporteRapido } from './ReporteRapido'
 import { SoporteSettings } from './SoporteSettings'
 import {
   cuerpoDelReporte,
@@ -180,6 +181,42 @@ describe('el diálogo del pie', () => {
     expect(html).toContain('aria-haspopup="dialog"')
     expect(html).toContain('Reportar un problema')
     // El mismo diálogo vive al lado del botón, cerrado hasta que se pulsa.
-    expect(html).toContain('aria-labelledby="reporte-titulo"')
+    expect(html).toContain('aria-labelledby="reporte-pie-titulo"')
+  })
+})
+
+describe('el reporte en las pantallas de reproducción', () => {
+  test('el mando compacto lleva su nombre accesible y su diálogo', () => {
+    const html = renderToString(<ReporteRapido variante="icono" />)
+
+    expect(html).toContain('class="reporte-rapido__icono"')
+    expect(html).toContain('aria-label="Reportar un problema"')
+    expect(html).toContain('title="Reportar un problema"')
+    expect(html).toContain('aria-haspopup="dialog"')
+    expect(html).toContain('aria-labelledby="reporte-icono-titulo"')
+  })
+
+  test('el enlace del reproductor no engorda la fila', () => {
+    const html = renderToString(<ReporteRapido variante="enlace" />)
+
+    // La tinta es "Reportar" y el nombre accesible, el entero.
+    expect(html).toContain('class="reporte-rapido__enlace"')
+    expect(html).toContain('aria-label="Reportar un problema"')
+    expect(html).toContain('>Reportar<')
+    expect(html).toContain('aria-labelledby="reporte-enlace-titulo"')
+  })
+
+  test('cada instancia usa un prefijo de ids distinto', () => {
+    const html = renderToString(
+      <>
+        <ReporteRapido variante="pie" />
+        <ReporteRapido variante="icono" />
+      </>,
+    )
+
+    expect(html).toContain('id="reporte-pie-titulo"')
+    expect(html).toContain('id="reporte-icono-titulo"')
+    expect((html.match(/id="reporte-pie-titulo"/g) ?? []).length).toBe(1)
+    expect((html.match(/id="reporte-icono-titulo"/g) ?? []).length).toBe(1)
   })
 })

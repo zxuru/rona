@@ -24,10 +24,13 @@ const LOCALE = DEFAULT_LOCALE
 export interface ReporteDialogProps {
   readonly open: boolean
   readonly onClose: () => void
+  /** El prefijo de los `id` del diálogo y del formulario. */
+  readonly idPrefijo?: string
 }
 
-export function ReporteDialog(props: ReporteDialogProps): ReactNode {
+export function ReporteDialog({ idPrefijo = 'reporte', ...props }: ReporteDialogProps): ReactNode {
   const dialogo = useRef<HTMLDialogElement>(null)
+  const titulo = `${idPrefijo}-titulo`
 
   // `showModal` y no el atributo `open`: el atributo pinta el diálogo pero no lo
   // hace modal —ni foco atrapado, ni `Esc`, ni fondo inerte—.
@@ -63,11 +66,11 @@ export function ReporteDialog(props: ReporteDialogProps): ReactNode {
     <dialog
       ref={dialogo}
       className="notice reporte"
-      aria-labelledby="reporte-titulo"
+      aria-labelledby={titulo}
       onClose={props.onClose}
     >
       <header className="notice__head">
-        <h2 className="notice__title" id="reporte-titulo">
+        <h2 className="notice__title" id={titulo}>
           {t(LOCALE, 'settings.support.report')}
         </h2>
         <button type="button" className="notice__close" onClick={props.onClose}>
@@ -81,7 +84,7 @@ export function ReporteDialog(props: ReporteDialogProps): ReactNode {
           El formulario se monta sólo con el diálogo abierto. Así el pie no pide
           nada al servidor hasta que se usa y cada apertura empieza limpia.
         */}
-        {props.open ? <FormularioReporte idPrefijo="reporte" /> : null}
+        {props.open ? <FormularioReporte idPrefijo={idPrefijo} /> : null}
       </div>
 
       <footer className="notice__foot">

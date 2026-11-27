@@ -447,6 +447,7 @@ export const messages: Messages = {
   // La entrada del pie: el repositorio y el reporte rápido, en un diálogo.
   'soporte.footer.github': 'Abrir el repositorio en GitHub',
   'soporte.footer.report': 'Reportar un problema',
+  'soporte.footer.reportShort': 'Reportar',
   'soporte.dialog.close': 'Cerrar',
   'settings.security.title': 'Antes de copiar un plugin, lee esto',
   'settings.security.body':
