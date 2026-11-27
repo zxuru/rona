@@ -73,6 +73,51 @@ const SECCIONES: readonly (readonly [string, string])[] = [
   ['Guía', 'guia'],
 ]
 
+/**
+ * El soporte: el repositorio y el reporte de un problema.
+ *
+ * El enlace del reporte se construye en el cliente, así que un test de servidor
+ * no lo ve. Aquí se comprueba lo que de verdad importa: que escribir en los dos
+ * campos cambia la dirección que se abriría, con el texto y el contexto puesto.
+ * No se pulsa el enlace: abriría GitHub de verdad.
+ */
+test.describe('Soporte', () => {
+  test('el repositorio y sus incidencias abren fuera', async ({ page }) => {
+    await entrar(page)
+    await esperarApp(page)
+    await page.goto('/settings')
+
+    const repositorio = page.getByRole('link', { name: /zxuru\/rona/ })
+    await expect(repositorio).toHaveAttribute('href', 'https://github.com/zxuru/rona')
+    await expect(repositorio).toHaveAttribute('target', '_blank')
+
+    const incidencias = page.getByRole('link', { name: 'Ver las incidencias abiertas' })
+    await expect(incidencias).toHaveAttribute('href', 'https://github.com/zxuru/rona/issues')
+  })
+
+  test('el reporte lleva el asunto, el cuerpo y el contexto al borrador', async ({ page }) => {
+    await entrar(page)
+    await esperarApp(page)
+    await page.goto('/settings')
+
+    await page.getByLabel('Asunto').fill('No abre la ficha')
+    await page
+      .getByLabel('Qué ha pasado')
+      .fill('Pulso en una tarjeta y se queda cargando.')
+
+    const abrir = page.getByRole('link', { name: 'Abrir el reporte en GitHub' })
+    const href = await abrir.getAttribute('href')
+    expect(href).not.toBeNull()
+
+    const url = new URL(href ?? '')
+    expect(url.origin + url.pathname).toBe('https://github.com/zxuru/rona/issues/new')
+    expect(url.searchParams.get('title')).toBe('No abre la ficha')
+    expect(url.searchParams.get('body')).toContain('Pulso en una tarjeta y se queda cargando.')
+    expect(url.searchParams.get('body')).toContain('Contexto de la instalación')
+    expect(url.searchParams.get('body')).toContain('/settings')
+  })
+})
+
 test.describe('el índice de Ajustes', () => {
   test('cada enlace lleva a su sección y la marca', async ({ page }) => {
     await entrar(page)

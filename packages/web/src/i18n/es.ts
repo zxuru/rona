@@ -412,7 +412,38 @@ export const messages: Messages = {
   'settings.section.apariencia': 'Apariencia',
   'settings.section.privacidad': 'Privacidad y contenido',
   'settings.section.sistema': 'Sistema',
+  'settings.section.soporte': 'Soporte',
   'settings.section.guia': 'Guía',
+  /*
+   * El reporte de un problema.
+   *
+   * La aplicación no manda nada: el enlace deja el borrador escrito en GitHub y
+   * quien reporta lo revisa allí. Los textos lo dicen para que nadie crea que el
+   * reporte ya salió al pulsar el botón.
+   */
+  'settings.support.repo': 'El repositorio',
+  'settings.support.repo.body': 'El código, las incidencias y las versiones de RoNa.',
+  'settings.support.issues': 'Ver las incidencias abiertas',
+  'settings.support.report': 'Reportar un problema',
+  'settings.support.report.body':
+    'Cuéntanos qué falla y qué esperabas que pasara. El reporte se abre en GitHub con el texto ya escrito; allí lo revisas y lo envías.',
+  'settings.support.subject': 'Asunto',
+  'settings.support.description': 'Qué ha pasado',
+  'settings.support.description.hint':
+    'Pasos para reproducirlo, qué esperabas y qué viste. Cuanto más concreto, mejor.',
+  'settings.support.context': 'Adjuntar datos de la instalación',
+  'settings.support.context.help':
+    'Versión de RoNa, ruta, navegador y tamaño de la ventana. No se envía nada hasta que pulses el botón, y puedes revisar el borrador en GitHub antes de publicarlo.',
+  'settings.support.context.header': 'Contexto de la instalación',
+  'settings.support.context.version': 'Versión de RoNa',
+  'settings.support.context.path': 'Pantalla',
+  'settings.support.context.browser': 'Navegador',
+  'settings.support.context.window': 'Ventana',
+  'settings.support.version.unknown': 'no disponible',
+  'settings.support.required': 'Escribe un asunto y cuéntanos qué ha pasado para abrir el reporte.',
+  'settings.support.open': 'Abrir el reporte en GitHub',
+  'settings.support.open.help':
+    'Necesitas una cuenta de GitHub. Se abre una pestaña nueva con el borrador; nada se envía solo.',
   'settings.security.title': 'Antes de copiar un plugin, lee esto',
   'settings.security.body':
     'Los plugins se ejecutan sin sandbox, con tus permisos. Un plugin puede leer y escribir lo mismo que tú. Cópialos sólo si sabes de dónde vienen.',

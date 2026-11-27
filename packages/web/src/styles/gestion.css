@@ -1572,6 +1572,82 @@ details[open] > .library__settings-summary .library__settings-flecha {
   color: var(--color-danger);
 }
 
+/*
+ * La tarjeta del repositorio.
+ *
+ * El icono de GitHub es lo primero que se reconoce, así que va a la izquierda y
+ * con el cuerpo de un dibujo de marca. La tarjeta entera es el enlace: el borde
+ * y el fondo la separan de los campos y dejan claro que se puede pulsar sin
+ * depender de un subrayado.
+ */
+.settings__github {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: var(--border-width-strong) solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.settings__github:hover {
+  border-color: var(--color-accent);
+  background: var(--color-surface-raised);
+}
+
+.settings__github-icono,
+.settings__github-salida {
+  flex: none;
+}
+
+.settings__github-salida {
+  margin-inline-start: auto;
+  color: var(--color-text-dim);
+}
+
+.settings__github-texto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.settings__github-nombre {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.settings__github-nota {
+  color: var(--color-text-dim);
+  font-size: var(--text-sm);
+}
+
+/* El campo de varias líneas: el alto lo pone el texto y no el control de una. */
+.field__input--area {
+  min-block-size: calc(var(--header-height) * 2);
+  padding-block: var(--space-2);
+  line-height: var(--leading-normal);
+  resize: vertical;
+}
+
+/* Lo que falta para abrir el reporte. */
+.field__aviso {
+  margin: 0;
+  color: var(--color-danger);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+/* Los enlaces de la sección son enlaces, no botones: sin subrayado de serie. */
+a.settings__link {
+  text-decoration: none;
+}
+
 /* Las capacidades de un proveedor, en iconos. */
 .settings__caps {
   display: inline-flex;
