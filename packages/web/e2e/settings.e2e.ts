@@ -101,9 +101,7 @@ test.describe('Soporte', () => {
     await page.goto('/settings')
 
     await page.getByLabel('Asunto').fill('No abre la ficha')
-    await page
-      .getByLabel('Qué ha pasado')
-      .fill('Pulso en una tarjeta y se queda cargando.')
+    await page.getByLabel('Qué ha pasado').fill('Pulso en una tarjeta y se queda cargando.')
 
     const abrir = page.getByRole('link', { name: 'Abrir el reporte en GitHub' })
     const href = await abrir.getAttribute('href')
