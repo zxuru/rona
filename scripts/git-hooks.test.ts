@@ -74,6 +74,9 @@ function git(args: readonly string[], cwd: string): { code: number; out: string;
  * crear su tubería de señales: el commit muere con un fatal de `env.exe` y no con el mensaje del
  * gancho. Se mide con un gancho trivial que tiene que dejar pasar el commit. Donde la respuesta es
  * verdadera —CI y cualquier Windows sin ese sandbox—, las pruebas de integración corren enteras.
+ *
+ * Se mide al recoger las pruebas y no en un `beforeAll` porque `test.skipIf` decide ahí: la
+ * medición es el precio de que el archivo se pueda cargar en las dos máquinas.
  */
 function puedeEjecutarGanchos(): boolean {
   const raiz = `${BASE}/capacidad`
@@ -191,8 +194,19 @@ describe('decidir', () => {
 })
 
 describe('el gancho instalado', () => {
-  test('core.hooksPath apunta a .githooks', () => {
-    expect(git(['config', 'core.hooksPath'], RAIZ).out).toBe('.githooks')
+  test('el gancho está en `.githooks` y, si está instalado, es el que git usa', () => {
+    // `core.hooksPath` vive en la configuración **de la máquina**, no del repositorio: un clon
+    // recién hecho no lo tiene hasta `bun run hooks:instalar`, y exigirlo aquí convertía la
+    // suite en un fallo de entorno. Se mide siempre la fuente; lo instalado, si lo está.
+    const preCommit = join(RAIZ, '.githooks', 'pre-commit')
+
+    expect(existsSync(preCommit)).toBe(true)
+    expect(readFileSync(preCommit, 'utf8')).toContain('git-hooks')
+
+    const configurado = git(['config', 'core.hooksPath'], RAIZ).out
+    if (configurado !== '') {
+      expect(configurado).toBe('.githooks')
+    }
   })
 
   testDeGancho('git frena el commit en main y lo permite con la variable del integrador', () => {

@@ -124,8 +124,26 @@ function exigir(salida: Salida, contexto: string): string {
   return salida.out
 }
 
+/**
+ * Frena la orden si `raiz` no es la raíz de un repositorio.
+ *
+ * `git` resuelve hacia arriba: desde un subdirectorio —o desde un directorio cuyo `.git` ya
+ * no está— el repositorio que responde es el que lo contiene. En `limpiar` eso borraba el
+ * `.worktrees/` del repositorio de fuera; en `abandonar`, la rama de una tarea real.
+ */
+function exigirRaiz(orden: string, raiz: string): void {
+  const arbol = raizDelArbol(raiz)
+
+  if (arbol === undefined || normalizar(arbol) !== normalizar(raiz)) {
+    throw new Error(
+      `${orden} ${raiz}: no es la raíz de un repositorio. Se trabajaría sobre el que la contiene; no se toca nada.`,
+    )
+  }
+}
+
 export function abrir(id: string, raiz: string = RAIZ): string {
   const limpio = idDeTask(id)
+  exigirRaiz('abrir', raiz)
   const ruta = rutaWorktree(raiz, limpio)
   const rama = nombreRama(limpio)
   const claim = nombreClaim(limpio)
@@ -167,6 +185,7 @@ export function abrir(id: string, raiz: string = RAIZ): string {
 
 export function cerrar(id: string, raiz: string = RAIZ): void {
   const limpio = idDeTask(id)
+  exigirRaiz('cerrar', raiz)
   const ruta = rutaWorktree(raiz, limpio)
   const rama = nombreRama(limpio)
   const claim = nombreClaim(limpio)
@@ -213,6 +232,7 @@ export function abandonar(id: string, confirmado: boolean, raiz: string = RAIZ):
     )
   }
 
+  exigirRaiz('abandonar', raiz)
   const ruta = rutaWorktree(raiz, limpio)
 
   git(['worktree', 'remove', '--force', ruta], raiz)
@@ -226,12 +246,17 @@ export function estado(raiz: string = RAIZ): void {
   const reclamos = git(['for-each-ref', '--format=%(refname)', 'refs/claims/'], raiz)
   const lineas = reclamos.out === '' ? [] : reclamos.out.split('\n')
   const arboles = git(['worktree', 'list', '--porcelain'], raiz).out
+  const restos = restosSinRegistrar(raiz)
 
   console.log(
     `Reclamos:\n${lineas.length > 0 ? lineas.map((l) => `  ${l}`).join('\n') : '  (ninguno)'}`,
   )
   console.log(`Worktrees:\n${arboles}`)
-  console.log(`Restos: ${restosSinRegistrar(raiz).length} directorios sin registrar en .worktrees/`)
+  console.log(
+    restos === undefined
+      ? 'Restos: no se pudo leer el repositorio, así que no se sabe.'
+      : `Restos: ${restos.length} directorios sin registrar en .worktrees/`,
+  )
 }
 
 /* ------------------------------------------------------------------ *
@@ -282,13 +307,40 @@ export interface Resumen {
 }
 
 /**
- * La ruta tal y como la comparan git y este script: con barras hacia delante y sin
+ * La ruta tal y como la comparan git y este script: absoluta, con barras hacia delante y sin
  * distinguir mayúsculas en Windows, donde `C:\Repo` y `c:/repo` son el mismo directorio.
+ *
+ * `resolve` no es decorativo: un git que devolviera un `.git` relativo —`--path-format` no
+ * existe antes de 2.31— hacía que `dirname('.git')` fuera `'.'`, y la poda miraba el
+ * `.worktrees/` del directorio de trabajo en vez del de la raíz que se le pidió.
  */
 function normalizar(ruta: string): string {
-  const limpia = ruta.replace(/\\/g, '/').replace(/\/+$/, '')
+  const absoluta = resolve(ruta).replace(/\\/g, '/')
+  const limpia = absoluta.length > 1 ? absoluta.replace(/\/+$/, '') : absoluta
 
   return process.platform === 'win32' ? limpia.toLowerCase() : limpia
+}
+
+/** ¿`hijo` está dentro de `padre`? Ya normalizados, para no discutir con Windows. */
+function estaDentroDe(hijo: string, padre: string): boolean {
+  return normalizar(hijo).startsWith(`${normalizar(padre)}/`)
+}
+
+/**
+ * El árbol de trabajo de `raiz`, si `raiz` es la raíz de un repositorio.
+ *
+ * Sin esta comprobación, git sube al repositorio que la contiene: pedir la poda de un
+ * subdirectorio —o de un directorio cuyo `.git` desapareció— podaba el `.worktrees/` del
+ * repositorio de fuera. Un `undefined` aquí significa «no se toca nada», no «no hay worktrees».
+ */
+function raizDelArbol(raiz: string): string | undefined {
+  const tope = git(['rev-parse', '--path-format=absolute', '--show-toplevel'], raiz)
+
+  if (tope.code !== 0 || tope.out === '') {
+    return undefined
+  }
+
+  return resolve(tope.out)
 }
 
 /**
@@ -297,21 +349,35 @@ function normalizar(ruta: string): string {
  * El script puede correr desde un worktree, y entonces `.worktrees/` no está debajo de
  * él: los restos se acumulan en el repositorio principal, que es el que los tiene que
  * podar. `git rev-parse --git-common-dir` da la raíz común de todos los worktrees.
+ *
+ * `undefined` es «no se pudo leer», y quien poda no puede confundirlo con «no hay nada»:
+ * con una raíz vacía, todos los directorios de `.worktrees/` parecerían restos.
  */
-function raizPrincipal(raiz: string): string {
+function raizPrincipal(raiz: string): string | undefined {
   const comun = git(['rev-parse', '--path-format=absolute', '--git-common-dir'], raiz)
 
   if (comun.code !== 0 || comun.out === '') {
-    return raiz
+    return undefined
   }
 
-  return dirname(comun.out)
+  return resolve(dirname(comun.out))
 }
 
-/** Los worktrees que git tiene registrados: ruta normalizada → rama. */
-function worktreesRegistrados(raiz: string): Map<string, string | undefined> {
+/**
+ * Los worktrees que git tiene registrados: ruta normalizada → rama.
+ *
+ * `undefined` cuando git no contesta. Un repositorio se lista siempre a sí mismo, así que
+ * una lista vacía es un fallo, no un repositorio sin worktrees.
+ */
+function worktreesRegistrados(raiz: string): Map<string, string | undefined> | undefined {
+  const salida = git(['worktree', 'list', '--porcelain'], raiz)
+
+  if (salida.code !== 0 || salida.out === '') {
+    return undefined
+  }
+
   const registrados = new Map<string, string | undefined>()
-  const lineas = git(['worktree', 'list', '--porcelain'], raiz).out.split('\n')
+  const lineas = salida.out.split('\n')
   let actual: string | undefined
 
   for (const linea of lineas) {
@@ -327,9 +393,13 @@ function worktreesRegistrados(raiz: string): Map<string, string | undefined> {
 }
 
 /** Los directorios de `.worktrees/` que git no tiene registrados: los restos. */
-function restosSinRegistrar(raiz: string): string[] {
+function restosSinRegistrar(raiz: string): string[] | undefined {
   const raizRepo = raizPrincipal(raiz)
-  const registradas = worktreesRegistrados(raizRepo)
+  const registradas = raizRepo === undefined ? undefined : worktreesRegistrados(raizRepo)
+
+  if (raizRepo === undefined || registradas === undefined) {
+    return undefined
+  }
 
   return listarDirectorios(join(raizRepo, '.worktrees')).filter(
     (ruta) => !registradas.has(normalizar(ruta)),
@@ -630,11 +700,24 @@ function informe(juicios: readonly Juicio[], registradas: number): void {
  * archivos que no se pueden comprobar.
  */
 export function limpiar(confirmado: boolean, raiz: string = RAIZ): Resumen {
+  // La poda no está acotada por su argumento: git resuelve hacia arriba. Es el `rmSync` del
+  // repositorio, así que la comprobación va antes que nada.
+  exigirRaiz('limpiar', raiz)
+
   const raizRepo = raizPrincipal(raiz)
+  if (raizRepo === undefined) {
+    throw new Error(`no se pudo leer el repositorio de ${raiz}: no se toca nada.`)
+  }
+
+  // Un registro vacío no es «no hay worktrees registrados»: es git sin contestar. Con él,
+  // hasta el worktree en el que estás sería un resto.
   const registradas = worktreesRegistrados(raizRepo)
-  const candidatos = listarDirectorios(join(raizRepo, '.worktrees')).filter(
-    (ruta) => !registradas.has(normalizar(ruta)),
-  )
+  if (registradas === undefined) {
+    throw new Error(`no se pudo leer la lista de worktrees de ${raizRepo}: no se toca nada.`)
+  }
+
+  const carpeta = join(raizRepo, '.worktrees')
+  const candidatos = listarDirectorios(carpeta).filter((ruta) => !registradas.has(normalizar(ruta)))
   const juicios = candidatos.map((ruta) => juzgar(ruta, raizRepo))
   const paraBorrar = juicios.filter((juicio) => juicio.borrar)
   const conservados = juicios.filter((juicio) => !juicio.borrar)
@@ -653,12 +736,24 @@ export function limpiar(confirmado: boolean, raiz: string = RAIZ): Resumen {
     return { juicios, borrados: [], conservados }
   }
 
+  // Los candidatos salen de `listarDirectorios`, así que ya están dentro; se comprueba igual
+  // antes de borrar nada, y todas las comprobaciones antes del primer borrado: una ruta que
+  // se salga no puede llevarse por delante lo que venga detrás en la lista.
+  const fuera = paraBorrar.filter((juicio) => !estaDentroDe(juicio.ruta, carpeta))
+  if (fuera.length > 0) {
+    throw new Error(
+      `no se borra nada: ${fuera.map((juicio) => juicio.ruta).join(', ')} no está dentro de ${carpeta}.`,
+    )
+  }
+
   const borrados: string[] = []
   const ramasBorradas: string[] = []
   for (const juicio of paraBorrar) {
     rmSync(juicio.ruta, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
     borrados.push(juicio.nombre)
-    if (juicio.rama !== undefined) {
+    // Sólo se nombra una rama que sigue en pie: el nombre del directorio sugiere una rama
+    // que puede no existir, y decir que «sigue» cuando no está es una mentira del informe.
+    if (juicio.rama !== undefined && juicio.ramaEnPie) {
       ramasBorradas.push(juicio.rama)
     }
   }
