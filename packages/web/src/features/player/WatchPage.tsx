@@ -38,6 +38,7 @@ import { ANCLAS } from '../guia/guia'
 import { PartyBar } from '../party/PartyBar'
 import { PartyPanel } from '../party/PartyPanel'
 import { muestraBotonSala, usePartyAvailable } from '../party/usePartyAvailable'
+import { ReporteRapido } from '../soporte/ReporteRapido'
 import { AudioModeSwitch } from './AudioModeSwitch'
 import { formatTime } from './controls'
 import { Player } from './Player'
@@ -192,20 +193,29 @@ export function WatchPage(props: WatchPageProps): ReactNode {
           {t(DEFAULT_LOCALE, 'player.backToDetail')}
         </Link>
         <h1>{tituloAnime ?? t(DEFAULT_LOCALE, 'title.loading')}</h1>
-        {lineaEpisodio === undefined ? null : (
-          <p className="watch__episode">
-            {lineaEpisodio}
-            {mostrarReanudar ? (
-              <span className="watch__resume">
-                {' · '}
-                {t(DEFAULT_LOCALE, 'player.resume', { time: formatTime(reanudaEn ?? 0) })}{' '}
-                <button type="button" className="watch__restart" onClick={empezarDeCero}>
-                  {t(DEFAULT_LOCALE, 'player.resume.restart')}
-                </button>
-              </span>
-            ) : null}
-          </p>
-        )}
+        {/*
+          El episodio y el reporte, en la misma fila. El reporte va aquí y no con
+          los mandos de la derecha porque en el móvil esos mandos se apilan y un
+          botón más le quitaba alto al video; esta fila ya existía para el
+          episodio y el enlace comparte su alto.
+        */}
+        <div className="watch__meta">
+          {lineaEpisodio === undefined ? null : (
+            <p className="watch__episode">
+              {lineaEpisodio}
+              {mostrarReanudar ? (
+                <span className="watch__resume">
+                  {' · '}
+                  {t(DEFAULT_LOCALE, 'player.resume', { time: formatTime(reanudaEn ?? 0) })}{' '}
+                  <button type="button" className="watch__restart" onClick={empezarDeCero}>
+                    {t(DEFAULT_LOCALE, 'player.resume.restart')}
+                  </button>
+                </span>
+              ) : null}
+            </p>
+          )}
+          <ReporteRapido variante="enlace" />
+        </div>
       </div>
       {/* «Ver juntos» y la descarga, en la misma fila del encabezado: la sala se
           mide contra la ventana y un bloque más debajo empujaba la página. El

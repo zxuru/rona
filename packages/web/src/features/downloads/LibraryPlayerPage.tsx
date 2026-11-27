@@ -39,6 +39,7 @@ import {
 import type { SafeTrack } from '../player/usePlayer'
 import { UPDATE_INTERVAL_MS, useWatchEvents } from '../player/useWatchEvents'
 import { coverPath } from '../search/ResultCard'
+import { ReporteRapido } from '../soporte/ReporteRapido'
 import { agruparBiblioteca, type Descarga, vecinosDe } from './biblioteca'
 import {
   claveDeLaDescarga,
@@ -366,6 +367,8 @@ export function LibraryPlayerPage(props: { readonly id: string }): ReactNode {
           <CircleCheck size={16} strokeWidth={2} aria-hidden="true" focusable="false" />
           <span className="library-player__badge-texto">{t(LOCALE, 'library.downloaded')}</span>
         </span>
+        {/* Esta pantalla tampoco lleva pie; el reporte va en su encabezado. */}
+        <ReporteRapido variante="icono" />
       </header>
 
       {estado === 'loading' ? (

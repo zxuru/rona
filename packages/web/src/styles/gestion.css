@@ -1662,6 +1662,71 @@ details[open] > .library__settings-summary .library__settings-flecha {
   gap: var(--space-3);
 }
 
+/*
+ * El mando compacto del reporte, para los encabezados de reproducción.
+ *
+ * Mide el objetivo táctil entero y sólo lleva el dibujo: en esas pantallas el
+ * título se está comiendo el ancho y un botón de texto lo dejaría sin sitio.
+ */
+.reporte-rapido__icono {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: var(--control-size);
+  min-block-size: var(--control-size);
+  padding: 0;
+  border: var(--border-width-strong) solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.reporte-rapido__icono:hover {
+  border-color: var(--color-accent);
+  background: var(--color-surface-raised);
+  color: var(--color-accent);
+}
+
+/*
+ * El reporte como enlace, para el encabezado de la reproducción.
+ *
+ * Ocupa el alto de un renglón, como la vuelta a la ficha, así que no le quita
+ * alto al video. El objetivo táctil se agranda con el `::after` —el mismo truco
+ * que la vuelta— sin engordar la fila: 44 px de dedo, 20 px de tinta.
+ */
+.reporte-rapido__enlace {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.reporte-rapido__enlace::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--space-3) * -1 - var(--border-width)) calc(var(--space-2) * -1);
+}
+
+.reporte-rapido__enlace:hover,
+.reporte-rapido__enlace:focus-visible {
+  color: var(--color-accent);
+}
+
 .reporte .notice__foot a {
   display: inline-flex;
   align-items: center;

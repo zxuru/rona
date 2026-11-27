@@ -2195,8 +2195,23 @@ body.player-extendido {
   flex: 1 1 auto;
   flex-direction: column;
   gap: var(--space-1);
-  /* Sin esto el ancho mínimo del titular —una palabra larga— empuja los mandos
+  /* Sin esto el ancho mínimo del titular -una palabra larga- empuja los mandos
      y el encabezado desborda en vez de recortar. */
+  min-inline-size: 0;
+}
+
+/*
+ * La fila del episodio y el reporte.
+ *
+ * El enlace del reporte ocupa el alto de un renglón, como el episodio, así que
+ * no le quita alto al video. Comparte fila con el episodio para que aparezca
+ * donde se mira qué se está viendo.
+ */
+.watch__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
   min-inline-size: 0;
 }
 
