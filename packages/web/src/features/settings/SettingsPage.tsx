@@ -6,7 +6,7 @@
  * esta página, un plugin roto es un misterio y una ruta de datos es un dato que
  * nadie encuentra.
  *
- * La página está partida en nueve secciones y un índice las recorre. Antes era una
+ * La página está partida en diez secciones y un índice las recorre. Antes era una
  * lista plana: para llegar al tema había que pasar por proveedores, repositorios,
  * alta, TMDB, rutas, mpv y saltos. Las secciones y sus nombres viven en
  * `secciones.ts`; el índice y los `id` salen de la misma lista, así que un enlace
@@ -40,6 +40,7 @@ import { QualitySettings } from './QualitySettings'
 import { RegisterProvider } from './RegisterProvider'
 import { SecurityNoticeDialog } from './SecurityNotice'
 import { SkipSettings } from './SkipSettings'
+import { SoporteSettings } from './SoporteSettings'
 import { SECCIONES, SECCIONES_AJUSTES } from './secciones'
 import { ThemeToggle } from './ThemeToggle'
 import { useProviderRepos } from './useProviderRepos'
@@ -69,7 +70,7 @@ export function SettingsPage(): ReactNode {
    * El ancla de la dirección.
    *
    * El primer arranque enlaza a `/settings#fuentes` para no dejar al usuario
-   * buscando la sección entre nueve. La navegación de la aplicación empuja la
+   * buscando la sección entre diez. La navegación de la aplicación empuja la
    * dirección sin recargar, así que el navegador no salta solo: se hace aquí,
    * cuando los datos ya pintaron las secciones —antes no existen—. Se aplica una
    * sola vez: los ajustes se vuelven a leer al cambiar el tema o la lista de
@@ -505,6 +506,26 @@ export function SettingsPage(): ReactNode {
                 <dd>{data.paths.cache}</dd>
               </dl>
             </section>
+          </section>
+
+          {/*
+            Soporte: el repositorio y el reporte de un problema.
+
+            Va después de las rutas y antes de la guía porque no configura nada de
+            esta instalación: es la salida cuando algo no funciona. El formulario
+            abre GitHub con el texto puesto y no envía nada por su cuenta, que es
+            la misma promesa del pie de la aplicación.
+          */}
+          <section
+            className="settings__seccion"
+            id={SECCIONES.soporte.id}
+            aria-labelledby={`${SECCIONES.soporte.id}-titulo`}
+          >
+            <h2 id={`${SECCIONES.soporte.id}-titulo`}>
+              {t(DEFAULT_LOCALE, SECCIONES.soporte.titulo)}
+            </h2>
+
+            <SoporteSettings />
           </section>
 
           {/* La guía va al final: no configura nada, sólo repite lo que ya se vio.

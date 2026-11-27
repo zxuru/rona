@@ -2,7 +2,7 @@
  * Las secciones de Ajustes.
  *
  * La página era una lista plana de doce bloques y el índice existía sólo en la
- * cabeza de quien la había escrito. Aquí vive la lista corta —nueve secciones— y
+ * cabeza de quien la había escrito. Aquí vive la lista corta —diez secciones— y
  * el nombre de cada una; el índice y las secciones se pintan de esta misma
  * fuente, así que un enlace no puede apuntar a un `id` que la página no declara.
  *
@@ -18,12 +18,12 @@ export interface SeccionAjustes {
 }
 
 /**
- * Las nueve secciones, en el orden en que se leen.
+ * Las diez secciones, en el orden en que se leen.
  *
  * El orden va de lo que hace funcionar la aplicación a lo que sólo la explica:
  * primero las fuentes, luego cómo se ve un episodio y qué avisos se quieren,
  * dónde se guarda lo que se descarga, la copia del perfil, la apariencia, lo que
- * se comparte fuera, las rutas del disco y, al final, los tutoriales.
+ * se comparte fuera, las rutas del disco, el soporte y, al final, los tutoriales.
  */
 export const SECCIONES = {
   fuentes: { id: 'fuentes', titulo: 'settings.section.fuentes' },
@@ -34,6 +34,7 @@ export const SECCIONES = {
   apariencia: { id: 'apariencia', titulo: 'settings.section.apariencia' },
   privacidad: { id: 'privacidad', titulo: 'settings.section.privacidad' },
   sistema: { id: 'sistema', titulo: 'settings.section.sistema' },
+  soporte: { id: 'soporte', titulo: 'settings.section.soporte' },
   guia: { id: 'guia', titulo: 'settings.section.guia' },
 } as const satisfies Record<string, SeccionAjustes>
 
