@@ -86,6 +86,35 @@ bun run scripts/agente.ts abandonar T60 --si   # destructivo: tira la rama sin i
    `cerrar` pasa, porque lleva `MERGE_HEAD`. El integrador pasa con `RONA_INTEGRADOR=1`.
    Se instala una vez por clon con `bun run hooks:instalar`; sin eso el gancho existe y no corre.
 
+## Móvil y TV: reglas permanentes
+
+El plan y la auditoría viven en `docs/plan-movil-tv.md`. Estas reglas no se negocian por fase.
+
+- **Un solo núcleo.** La lógica de aplicación vive una vez, en `packages/core`/`packages/server`, y
+  se comparte. Prohibido copiarla a `mobile/`, a Rust o a Kotlin. `mobile/` es cáscara y adaptadores.
+- **Adaptadores, no `if (platform)`.** `storage`, `network`, `files` y `player` se consumen por
+  puertos. La UI no sabe si está en escritorio, Android, iOS o TV; pregunta capacidades.
+- **Capacidades.** `platform: desktop|mobile|tv` e `input: mouse|touch|dpad` se detectan en la
+  cáscara y se pasan por contexto. Las funciones de escritorio (`tray`, Discord RPC, modo portable,
+  instancia única, actualizador, mpv, plugins de usuario) se **apagan** fuera de escritorio: la ruta
+  no se registra o el componente no se pinta. Un 404 explicable es mejor que un fallo raro.
+- **Móvil.** Layout táctil, objetivos ≥ 44 px, iconos antes que textos largos, gestos del reproductor,
+  safe areas (`env(safe-area-inset-*)`), orientación y `wakeLock` cuando se pueda. Nada de hover como
+  única forma de descubrir una acción.
+- **TV.** Interfaz de 10 pies, navegación espacial con D-pad, foco siempre visible, sin trampas de
+  foco, sin hover, textos y controles grandes, reproductor controlable sólo con el mando y `Back`
+  consistente.
+- **Rendimiento con presupuesto.** Arranque, memoria, bundle y batería se miden contra la tabla de
+  `docs/plan-movil-tv.md`. hls.js se carga diferido; las listas largas se virtualizan; las imágenes
+  van `loading="lazy"`/`decoding="async"`, salvo el destacado.
+- **Persistencia.** La base y las migraciones son las mismas en todas las plataformas. El progreso y
+  la biblioteca sobreviven a la actualización; una base local no crea una segunda verdad frente a una
+  instancia remota.
+- **Escritorio no se rompe.** Antes de cerrar: `bun run typecheck`, `bun run lint`, `bun test`,
+  `bun run e2e` si se tocó UI y `bun run desktop:check` si se tocó Rust. El CI manda.
+- **Cierre de fase.** Criterios medidos, dispositivos probados, pendientes declarados y commit
+  atómico con sus rutas. Sin dispositivo real, una función no se declara medida.
+
 ## Fuentes de verdad
 
 | Qué | Dónde | Cuándo se toca |
