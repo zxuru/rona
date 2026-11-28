@@ -793,6 +793,9 @@ de integrar T412**; si no, se rebasa y se resuelven conflictos de esquema.
 
 **Entra**
 
+- `docs/specs/proposals/SPEC-sync.md`: contrato del módulo nuevo (registros, HLC, rutas, errores,
+  límites y garantías). Se aprueba antes de escribir las rutas; el spec canónico se integra al
+  cerrar la fase.
 - Listener separado `syncServer` con Hono, puerto propio, guard de peer, rate limit y límites.
 - `sync/v1` con hello, pair, exchange/pull/push, status y revoke.
 - Sobre AEAD (o TLS con pin, según la prueba de F2) y claves por dispositivo.
