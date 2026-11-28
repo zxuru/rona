@@ -7,6 +7,25 @@ está publicando —desde `## [X.Y.Z]` hasta el encabezado siguiente— y la peg
 se escriba aquí es lo que se lee en la página de descargas. La versión la sube `release-please` en los
 diez `package.json`; este archivo lo mantiene él cuando el PR de release se fusiona.
 
+## [0.12.0](https://github.com/zxuru/rona/compare/v0.11.4...v0.12.0) (2026-11-28)
+
+
+### Features
+
+* DLNA experimental (SSDP discovery + SOAP AVTransport) + tests ([9fd2245](https://github.com/zxuru/rona/commit/9fd224570db3660e7f85bb34255cc1b74642b08e))
+* sync F1 (migracion 0024 + modulo sync), comando podar-tmp, PiP Kotlin, CI lock ([5c339e3](https://github.com/zxuru/rona/commit/5c339e3f82ad725aef335c2877937af7e52ca7b0))
+* **web:** el reporte rapido en el pie (T413) ([3cefdae](https://github.com/zxuru/rona/commit/3cefdaedbeb90ea60dea97a9344e572ca7a77969))
+* **web:** el reporte tambien en las pantallas de reproduccion (T416) ([15e234a](https://github.com/zxuru/rona/commit/15e234a8572f77e9a0cdfbae0be288646ea80e03))
+* **web:** los mandos del reproductor en tactil y el giro a pantalla completa (T419) ([30cb2e5](https://github.com/zxuru/rona/commit/30cb2e5a14b796e408b6327a6ee74e9cff42b53f))
+* **web:** reportar problemas y abrir GitHub desde Ajustes (T411) ([f2be783](https://github.com/zxuru/rona/commit/f2be783b35afed959808b659db16caf97cb6a97b))
+
+
+### Bug Fixes
+
+* **repo:** cerrar no vacía un worktree en uso (T415) ([47b7678](https://github.com/zxuru/rona/commit/47b76786fbf1ad39bfa989fe67c10465b3e65dba))
+* **repo:** la poda de worktrees no se sale de su repositorio (T414) ([804018f](https://github.com/zxuru/rona/commit/804018f5cb7688973044a2310cd374a01948476c))
+* **web:** el filtro pegado a la marquesina y el vacio con su aire (T417) ([5612836](https://github.com/zxuru/rona/commit/5612836c52c8f062522f4996cac7478f4d79e190))
+
 ## [0.11.4](https://github.com/zxuru/rona/compare/v0.11.3...v0.11.4) (2026-11-23)
 
 
