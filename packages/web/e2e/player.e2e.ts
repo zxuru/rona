@@ -54,6 +54,25 @@ async function contrasteDe(
 }
 
 /**
+ * Pulsa `Tab` hasta que el objetivo tenga el foco.
+ *
+ * Se usa el tabulador y no `.focus()` porque el foco que sujeta los mandos es
+ * `:focus-visible`: forzarlo desde el guion no dice si un teclado de verdad
+ * mantiene la banda a la vista. Es el mismo criterio que en `teclado.e2e.ts`.
+ */
+async function tabularHasta(page: Page, objetivo: Locator, limite = 120): Promise<void> {
+  for (let intento = 0; intento < limite; intento++) {
+    if (await objetivo.evaluate((nodo) => nodo === document.activeElement).catch(() => false)) {
+      return
+    }
+
+    await page.keyboard.press('Tab')
+  }
+
+  throw new Error('el tabulador no llegó al objetivo')
+}
+
+/**
  * El reproductor, en un navegador de verdad.
  *
  * Lo que se prueba aquí es el **mecanismo**: que la fuente llega por el proxy,
@@ -485,8 +504,9 @@ test.describe('el reproductor', () => {
     await page.getByRole('button', { name: 'Silenciar' }).click()
     await page.getByRole('button', { name: 'Reproducir' }).click()
 
-    // El clic deja el foco en el mando, y un mando con el foco no se esconde
-    // nunca: es la mitad de abajo de esta prueba, y aquí estorba.
+    // El clic deja el foco en el mando. Con el puntero ese foco ya no sujeta la
+    // banda —la regla es `:focus-visible`—, pero se retira igualmente para medir
+    // el temporizador sin depender de cómo trate el navegador el foco del clic.
     await page.evaluate(() => {
       const activo = document.activeElement
       if (activo instanceof HTMLElement) activo.blur()
@@ -500,8 +520,9 @@ test.describe('el reproductor', () => {
 
     // Con el foco del teclado dentro no se esconden ni aunque pase el tiempo:
     // esconderle el mando enfocado a quien navega con el teclado es dejarlo
-    // pulsando a ciegas.
-    await page.getByRole('button', { name: 'Pausar' }).focus()
+    // pulsando a ciegas. Se llega con `Tab`, que es lo que enciende
+    // `:focus-visible`; `.focus()` no lo haría y mediría otra cosa.
+    await tabularHasta(page, page.getByRole('button', { name: 'Pausar' }))
     await page.waitForTimeout(3500)
     await expect(mandos).toHaveCSS('opacity', '1')
   })

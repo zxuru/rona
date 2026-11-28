@@ -528,6 +528,15 @@
   --seek-height: 6px;
   --seek-height-active: 10px;
   --seek-hit: 1.5rem;
+  /**
+   * El alto del gesto cuando se maneja con el dedo.
+   *
+   * El carril mide seis píxeles, pero el `input` que recibe el toque no: con 24 px
+   * el dedo se salía del carril en horizontal y el gesto caía en la página. Con
+   * 32 px la zona del pulgar es del tamaño de un mando táctil sin engordar el
+   * carril ni la barra visible.
+   */
+  --seek-hit-touch: 2rem;
   --play-size: 5rem;
   /**
    * El degradado de la barra de mandos.

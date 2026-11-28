@@ -15,6 +15,7 @@
  */
 
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react'
+import { useConsultaDeMedios } from '../../lib/useConsultaDeMedios'
 
 /**
  * Lo que tarda la barra en esconderse sola mientras el video reproduce.
@@ -22,8 +23,14 @@ import { type RefObject, useCallback, useEffect, useRef, useState } from 'react'
  * Tres segundos: lo que se tarda en decidir que no se va a tocar nada. Menos
  * parpadea cada vez que alguien señala la pantalla, y más deja los mandos encima
  * de la imagen todo el rato, que es lo que había antes.
+ *
+ * En táctil son dos: no hay un puntero que pueda volver a enseñarla pasando por
+ * encima, y en horizontal cada segundo de más es un segundo de fotograma tapado.
+ * Con el menú abierto no se va —lo sujeta la hoja mientras `data-abierto` esté
+ * puesto—, así que acortarla no esconde nada que se esté usando.
  */
 const INACTIVIDAD_MS = 3000
+const INACTIVIDAD_TACTIL_MS = 2000
 
 /**
  * Los dos anchos a partir de los cuales la barra cambia de forma.
@@ -57,26 +64,13 @@ const ANCHO_VOLUMEN = 700
 /**
  * ¿La ventana cumple esta consulta de ancho?
  *
- * Se pregunta al montar y se escucha el cambio: girar el teléfono o encoger la
- * ventana tiene que mover el volumen al menú sin recargar la página. La primera
- * respuesta llega en un efecto y no en el render, así que en el servidor —donde no
- * hay `window`— vale «no»: la barra se pinta como la de escritorio y se corrige en
- * el primer efecto, que es antes de que el video tenga imagen.
+ * Se pregunta al montar y se escucha el cambio: encoger la ventana tiene que
+ * mover el volumen al menú sin recargar la página. La consulta la resuelve
+ * `useConsultaDeMedios`, que también es la que deja el render de servidor en «no»
+ * hasta el primer efecto.
  */
 function useAnchoHasta(ancho: number): boolean {
-  const [cumple, setCumple] = useState(false)
-
-  useEffect(() => {
-    const consulta = window.matchMedia(`(max-width: ${ancho}px)`)
-    const alCambiar = (): void => setCumple(consulta.matches)
-
-    alCambiar()
-    consulta.addEventListener('change', alCambiar)
-
-    return () => consulta.removeEventListener('change', alCambiar)
-  }, [ancho])
-
-  return cumple
+  return useConsultaDeMedios(`(max-width: ${ancho}px)`)
 }
 
 /**
@@ -126,6 +120,8 @@ export interface MandosDelReproductor {
 export function usePlayerMandos(
   reproduciendo: boolean,
   marco?: RefObject<HTMLElement | null>,
+  /** Puntero grueso: la barra se retira antes, que no hay puntero que la vuelva. */
+  tactil = false,
 ): MandosDelReproductor {
   const [visibles, setVisibles] = useState(true)
   const ventanaEstrecha = useAnchoHasta(ANCHO_ESTRECHO)
@@ -139,8 +135,11 @@ export function usePlayerMandos(
     setVisibles(true)
     if (reloj.current !== undefined) clearTimeout(reloj.current)
 
-    reloj.current = setTimeout(() => setVisibles(false), INACTIVIDAD_MS)
-  }, [])
+    reloj.current = setTimeout(
+      () => setVisibles(false),
+      tactil ? INACTIVIDAD_TACTIL_MS : INACTIVIDAD_MS,
+    )
+  }, [tactil])
 
   useEffect(() => {
     if (reloj.current !== undefined) clearTimeout(reloj.current)
