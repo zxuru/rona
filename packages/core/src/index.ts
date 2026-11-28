@@ -470,3 +470,26 @@ export {
 } from './taste'
 export { baseTitle, franchiseTitle, sagaTitle, seasonNumberOf } from './titles'
 export { FINISHED_RATIO, isFinished, watchedRatio } from './watch-progress'
+export {
+  contentKey,
+  episodeKey,
+  hlcCompare,
+  hlcFromString,
+  hlcToString,
+  mergeProgress,
+  nextHlc,
+  progressKey,
+  receiveHlc,
+  shouldApply,
+  SYNC_ENTITIES,
+  SYNC_MAX_CLOCK_SKEW_MS,
+  SYNCED_SETTINGS,
+  syncItemSchema,
+  type Hlc,
+  type HlcState,
+  type LibraryPayload,
+  type ProgressPayload,
+  type SyncEntity,
+  type SyncItem,
+  type SyncedSetting,
+} from './sync'

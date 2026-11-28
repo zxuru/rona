@@ -17,6 +17,7 @@ import {
   cerrar,
   idDeTask,
   limpiar,
+  podarTmp,
   nombreClaim,
   nombreRama,
   puertoDe,

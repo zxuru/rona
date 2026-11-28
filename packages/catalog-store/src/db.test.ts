@@ -51,6 +51,10 @@ const TABLAS_POSTERIORES = [
   'known_cover',
   'known_title',
   'taste_profile',
+  'sync_item',
+  'watch_progress',
+  'sync_state',
+  'sync_peer',
 ]
 
 /** Las versiones que hay hoy, para no fijar números que crecen con cada migración. */

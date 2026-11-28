@@ -23,6 +23,7 @@
 import {
   closeSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   openSync,
@@ -96,7 +97,7 @@ interface Salida {
 function git(args: readonly string[], cwd: string): Salida {
   // `.tmp/` puede no existir en un clon recién hecho, y `mkdtempSync` no crea el padre.
   mkdirSync(join(RAIZ, '.tmp'), { recursive: true })
-  const temporal = mkdtempSync(join(RAIZ, '.tmp', 'agente-git-'))
+  const temporal = mkdtempSync(join(RAIZ, '.tmp', `agente-git-${Date.now()}-`))
   const rutaOut = join(temporal, 'out')
   const rutaErr = join(temporal, 'err')
   const out = openSync(rutaOut, 'w')
@@ -846,6 +847,127 @@ export function limpiar(confirmado: boolean, raiz: string = RAIZ): Resumen {
   return { juicios, borrados, conservados }
 }
 
+/* ------------------------------------------------------------------ *
+ * Podar .tmp/
+ * ------------------------------------------------------------------ */
+
+export interface EntradaTmp {
+  readonly nombre: string
+  readonly ruta: string
+  readonly esDirectorio: boolean
+  readonly tamano: number
+  readonly edadDias: number
+  readonly borrar: boolean
+  readonly motivo: string
+}
+
+export interface ResumenTmp {
+  readonly entradas: readonly EntradaTmp[]
+  readonly borrados: readonly string[]
+  readonly conservados: readonly EntradaTmp[]
+}
+
+/** Tamaño total de un directorio o archivo, en bytes. */
+function tamanoDe(ruta: string): number {
+  const info = lstatSync(ruta, { throwIfNoEntry: false })
+  if (info === undefined) {
+    return 0
+  }
+  // Los enlaces simbólicos no se siguen: evitar bucles (junc/enlace…).
+  if (info.isSymbolicLink()) {
+    return 0
+  }
+  if (info.isFile()) {
+    return info.size
+  }
+  if (!info.isDirectory()) {
+    return 0
+  }
+  let total = 0
+  for (const entrada of readdirSync(ruta, { withFileTypes: true })) {
+    if (entrada.isSymbolicLink()) {
+      continue
+    }
+    total += tamanoDe(join(ruta, entrada.name))
+  }
+  return total
+}
+
+const UN_DIA_MS = 24 * 60 * 60 * 1000
+
+export function podarTmp(confirmado: boolean, raiz: string = RAIZ): ResumenTmp {
+  exigirRaiz('podar-tmp', raiz)
+  const carpeta = join(raiz, '.tmp')
+  if (!existsSync(carpeta)) {
+    console.log('.tmp/ no existe: nada que podar.')
+    return { entradas: [], borrados: [], conservados: [] }
+  }
+
+  const ahora = Date.now()
+  const entradas: EntradaTmp[] = []
+  for (const entrada of readdirSync(carpeta, { withFileTypes: true })) {
+    const ruta = join(carpeta, entrada.name)
+    const info = statSync(ruta, { throwIfNoEntry: false })
+    if (info === undefined) {
+      continue
+    }
+    const edadDias = (ahora - info.mtimeMs) / UN_DIA_MS
+    const tamano = tamanoDe(ruta)
+    const esGitTmp = /^agente-git-|^hook-git-/.test(entrada.name)
+    const enUsoAhora = esGitTmp && edadDias < 1 / 24 // menos de una hora: en uso
+    const viejo = edadDias >= 1
+    const borrar = viejo && !enUsoAhora
+    const motivo = !viejo
+      ? 'reciente (menos de un día): se conserva'
+      : enUsoAhora
+        ? 'temporal de git en uso: se conserva'
+        : 'más de un día: se puede podar'
+    entradas.push({
+      nombre: entrada.name,
+      ruta,
+      esDirectorio: info.isDirectory(),
+      tamano,
+      edadDias,
+      borrar,
+      motivo,
+    })
+  }
+
+  const paraBorrar = entradas.filter((e) => e.borrar)
+  const conservados = entradas.filter((e) => !e.borrar)
+
+  console.log(`.tmp/: ${entradas.length} entradas, ${formatBytes(entradas.reduce((a, e) => a + e.tamano, 0))}.`)
+  for (const e of entradas) {
+    console.log(`  ${e.nombre}  ${formatBytes(e.tamano)}  ${e.edadDias.toFixed(1)}d  → ${e.borrar ? 'se borra' : 'se conserva'} (${e.motivo})`)
+  }
+  console.log('')
+  console.log(`Plan: borrar ${paraBorrar.length}, conservar ${conservados.length}.`)
+
+  if (!confirmado) {
+    console.log('Nada se ha tocado: repite con --si para borrarlos.')
+    return { entradas, borrados: [], conservados }
+  }
+
+  const borrados: string[] = []
+  for (const e of paraBorrar) {
+    try {
+      rmSync(e.ruta, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+      borrados.push(e.nombre)
+    } catch {
+      console.log(`Aviso: no se pudo borrar ${e.ruta}.`)
+    }
+  }
+  console.log(`Borrados ${borrados.length}.`)
+  return { entradas, borrados, conservados }
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+}
+
 function requerido(valor: string | undefined, uso: string): string {
   if (valor === undefined || valor === '') {
     throw new Error(`falta el id del task. Uso: ${uso}`)
@@ -863,6 +985,8 @@ const USO = [
   '  estado                  reclamos abiertos y worktrees',
   '  limpiar                 dice qué worktrees restos hay y no toca nada',
   '  limpiar --si            borra los worktrees restos ya integrados',
+  '  podar-tmp               dice qué ocupa .tmp/ y no toca nada',
+  '  podar-tmp --si          borra lo de .tmp/ con más de un día',
 ].join('\n')
 
 export function main(argv: readonly string[], raiz: string = RAIZ): number {
@@ -884,6 +1008,9 @@ export function main(argv: readonly string[], raiz: string = RAIZ): number {
         return 0
       case 'limpiar':
         limpiar(resto.includes('--si') || id === '--si', raiz)
+        return 0
+      case 'podar-tmp':
+        podarTmp(resto.includes('--si') || id === '--si', raiz)
         return 0
       default:
         console.log(USO)
