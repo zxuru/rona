@@ -8,16 +8,21 @@
  * descarga nada de verdad y lo que se mide aquí es la pantalla, no el motor.
  */
 
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
 import { entrar, esperarApp } from './fixtures'
 
-test.use({ viewport: { width: 390, height: 844 } })
+test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
 
 /** El ancho que sobra a la página: cero o negativo significa que no hay desborde. */
 async function desborde(page: Page): Promise<number> {
   return page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   )
+}
+
+/** La opacidad que el navegador pinta, que es lo que dice si la banda está. */
+async function opacidadDe(nodo: Locator): Promise<number> {
+  return nodo.evaluate((elemento) => Number(getComputedStyle(elemento).opacity))
 }
 
 /** Una descarga completa, con lo que la pantalla necesita para pintarla. */
@@ -92,15 +97,39 @@ test.describe('el reproductor de una descarga en el móvil', () => {
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog', { name: 'Reportar un problema' })).toBeHidden()
 
-    // A 390 px el reproductor ya es «compacto»: los saltos de diez segundos y el
-    // volumen no caben en la barra y viven en el menú. Lo que tiene que estar a
-    // la vista es lo de siempre: play, ajustes y pantalla completa.
+    // A 390 px y con el dedo, el reproductor es el del teléfono: no hay saltos de
+    // diez segundos, ni volumen, ni modo extendido. Lo que tiene que estar a la
+    // vista es lo de siempre: play, ajustes y pantalla completa.
     for (const mando of ['Reproducir', 'Ajustes', 'Pantalla completa']) {
       await expect(page.getByRole('button', { name: mando })).toBeVisible()
     }
 
+    // El volumen lo gobierna el aparato y el modo extendido lo pone el giro: en el
+    // documento no hay ninguno de los dos, ni en la fila ni en el menú.
+    await expect(page.getByRole('button', { name: 'Silenciar' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Modo extendido' })).toHaveCount(0)
+
     await page.getByRole('button', { name: 'Ajustes' }).click()
-    await expect(page.getByRole('button', { name: 'Silenciar' })).toBeVisible()
+    const menu = page.locator('.player__menu')
+    await expect(menu).toBeVisible()
+    await expect(menu.getByRole('button', { name: 'Silenciar' })).toHaveCount(0)
+    await expect(menu.getByRole('button', { name: 'Modo compatible' })).toHaveCount(0)
+    await expect(menu.getByRole('button', { name: 'Atajos de teclado' })).toHaveCount(0)
+    await expect(menu.getByRole('button', { name: 'Ver en mpv' })).toHaveCount(0)
+    // La velocidad sí: es lo que se ajusta desde el teléfono.
+    await expect(menu.getByRole('button', { name: '1×' })).toBeVisible()
+
+    // Y el mando mide los 44 px del objetivo táctil: en vertical el teléfono
+    // recupera el tamaño completo, que el volumen y el modo extendido ya no
+    // ocupan su hueco.
+    const anchoDelMando = await page.evaluate(() => {
+      const mando = document.querySelector(
+        '.player__buttons .player__control:not(.button--primary)',
+      )
+
+      return mando?.getBoundingClientRect().width ?? 0
+    })
+    expect(anchoDelMando).toBeGreaterThanOrEqual(44)
 
     // Las flechas de episodio y la lista, debajo del reproductor.
     await expect(page.getByRole('link', { name: /Siguiente: Episodio 2/ })).toBeVisible()
@@ -120,6 +149,116 @@ test.describe('el reproductor de una descarga en el móvil', () => {
 
     await page.getByRole('button', { name: 'Cancelar' }).click()
     await expect(page.getByRole('dialog')).toBeHidden()
+  })
+})
+
+/**
+ * El reproductor del teléfono.
+ *
+ * Mide lo que no se ve en el render de servidor: que el `pointer: coarse` de
+ * verdad quite los mandos de escritorio, que girar ponga el video a pantalla
+ * completa sin pedirle permiso al navegador y que la banda se retire sola aunque
+ * el foco se quede en el botón que se acaba de tocar.
+ */
+test.describe('el reproductor en un teléfono', () => {
+  const DIRECCION = '/watch/fixture/aurora-nocturna%239?anime=aurora-nocturna&at=30'
+
+  test('en táctil sobran los mandos de escritorio y el reinicio', async ({ page }) => {
+    await entrar(page)
+    await page.goto(DIRECCION)
+
+    await expect(page.locator('.player__seek .player__range')).toBeEnabled({ timeout: 15_000 })
+    await expect(page.locator('.watch__resume')).toContainText('Continúa en 0:30')
+
+    // La información de dónde continúa se queda; el mando para empezar de cero se
+    // va: para eso está la barra, que se arrastra con el dedo.
+    await expect(page.getByRole('button', { name: 'Empezar de cero' })).toHaveCount(0)
+
+    for (const mando of ['Silenciar', 'Modo extendido']) {
+      await expect(page.getByRole('button', { name: mando })).toHaveCount(0)
+    }
+
+    await page.getByRole('button', { name: 'Ajustes' }).click()
+    const menu = page.locator('.player__menu')
+    await expect(menu).toBeVisible()
+
+    for (const mando of ['Modo compatible', 'Atajos de teclado', 'Ver en mpv', 'Silenciar']) {
+      await expect(menu.getByRole('button', { name: mando })).toHaveCount(0)
+    }
+  })
+
+  /**
+   * El giro pone la pantalla completa.
+   *
+   * `requestFullscreen` exige un gesto y girar el aparato no lo es, así que el
+   * horizontal lo resuelve el modo extendido —el mismo `position: fixed` de
+   * siempre—, que no depende de ninguna API. Y el mando recupera los 44 px que el
+   * teléfono le había quitado para que cupiera el volumen.
+   */
+  test('al girar a horizontal ocupa la pantalla y los mandos miden 44', async ({ page }) => {
+    await entrar(page)
+    await page.goto(DIRECCION)
+    await expect(page.locator('.player__seek .player__range')).toBeEnabled({ timeout: 15_000 })
+
+    const reproductor = page.locator('.player')
+    await expect(reproductor).toHaveAttribute('data-extendido', 'false')
+
+    await page.setViewportSize({ width: 844, height: 390 })
+    await expect(reproductor).toHaveAttribute('data-extendido', 'true')
+
+    const caja = await reproductor.boundingBox()
+    expect(caja?.width).toBeGreaterThanOrEqual(843)
+    expect(caja?.height).toBeGreaterThanOrEqual(389)
+
+    const medidas = await page.evaluate(() => {
+      const mando = document.querySelector(
+        '.player__buttons .player__control:not(.button--primary)',
+      )
+      const carril = document.querySelector('.player__seek .player__range')
+
+      return {
+        mando: mando?.getBoundingClientRect().width ?? 0,
+        carril: carril?.getBoundingClientRect().height ?? 0,
+      }
+    })
+    expect(medidas.mando).toBeGreaterThanOrEqual(44)
+    expect(medidas.carril).toBeGreaterThanOrEqual(32)
+
+    // Volver a vertical devuelve la pantalla normal.
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(reproductor).toHaveAttribute('data-extendido', 'false')
+  })
+
+  /**
+   * La barra se retira y el menú no.
+   *
+   * El fallo era el foco: en táctil, el botón que se acaba de tocar conserva el
+   * foco y `:focus-within` mantenía la banda encima del fotograma para siempre. Con
+   * `:focus-visible` la cuenta atrás manda, salvo que haya un menú abierto —esa es
+   * la excepción que sigue sujeta a mano—.
+   */
+  test('la banda se retira a los dos segundos y el menú abierto la sujeta', async ({ page }) => {
+    await entrar(page)
+    await page.goto(DIRECCION)
+    await expect(page.locator('.player__seek .player__range')).toBeEnabled({ timeout: 15_000 })
+    await page.setViewportSize({ width: 844, height: 390 })
+
+    const controles = page.locator('.player__controls')
+    await page.getByRole('button', { name: 'Reproducir' }).tap()
+    await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible()
+    await expect
+      .poll(async () => await opacidadDe(controles), { timeout: 5_000 })
+      .toBeLessThan(0.05)
+
+    // Una pulsación sobre el video la devuelve; con el video en marcha, abrir los
+    // ajustes la sujeta aunque la cuenta atrás venza.
+    await page.locator('.player__frame').tap()
+    await page.getByRole('button', { name: 'Reproducir' }).tap()
+    await page.getByRole('button', { name: 'Ajustes' }).tap()
+    await expect(page.locator('.player__menu')).toBeVisible()
+    await page.waitForTimeout(2_600)
+    expect(await opacidadDe(controles)).toBe(1)
+    await expect(page.locator('.player__menu')).toBeVisible()
   })
 })
 

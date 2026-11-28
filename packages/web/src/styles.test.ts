@@ -1010,7 +1010,27 @@ describe('el reproductor sobre el fotograma', () => {
     const regla = css.slice(desde, css.indexOf('}', desde))
     expect(regla).toContain('opacity: 0')
     expect(regla).toContain('pointer-events: none')
-    expect(css).toContain('.player__stage:focus-within .player__acciones')
+    expect(css).toContain('.player__stage:has(:focus-visible) .player__acciones')
+    // `:focus-within` no vuelve: en táctil el botón que se acaba de tocar conserva
+    // el foco y la banda no se retiraba nunca, justo cuando más estorba.
+    expect(css).not.toContain(':focus-within .player__controls')
+  })
+
+  /**
+   * El menú abierto es la excepción al escondite.
+   *
+   * La banda se retira por inactividad, pero no mientras se está eligiendo algo en
+   * su menú: sin esta regla, el menú se apagaba a los dos segundos de abrirlo y no
+   * se podía pulsar nada. El contenedor lleva `data-abierto` y la hoja lo lee,
+   * **después** de la regla del extendido y con el `data-oculto` delante para
+   * ganarle con la misma especificidad: el extendido es justo cuando se abre.
+   */
+  test('el menú abierto sujeta la banda de mandos', async () => {
+    const css = await estructura()
+
+    expect(css).toContain(
+      '.player__stage:has(.player__menu[data-abierto="true"]) .player__controls[data-oculto="true"]',
+    )
   })
 
   test('el mando de seguir solo lleva su par de contraste', async () => {

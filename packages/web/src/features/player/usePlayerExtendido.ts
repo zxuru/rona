@@ -9,6 +9,13 @@
  * Arranca con la preferencia guardada, que es la que Ajustes deja puesta para
  * las próximas veces. Se guarda en cada cambio: quien apaga y enciende el modo
  * está eligiendo cómo quiere que abra el reproductor.
+ *
+ * En táctil hay además un modo **forzado**: el teléfono tumbado enseña el video a
+ * pantalla completa sin pedirle permiso al navegador —`requestFullscreen` exige un
+ * gesto, y girar el aparato no lo es—. Lo forzado no se guarda: al volver a
+ * vertical, el teléfono recupera la pantalla normal. En táctil la preferencia
+ * guardada tampoco se aplica —es una decisión de ventana de escritorio—, así que
+ * la postura es la única que decide.
  */
 
 import { useCallback, useEffect, useState } from 'react'
@@ -21,12 +28,13 @@ export interface ModoExtendido {
   readonly alternar: () => void
 }
 
-export function usePlayerExtendido(): ModoExtendido {
-  const [extendido, setExtendido] = useState(() => leerExtendido(almacenLocal()))
+export function usePlayerExtendido(forzado = false, ignorarPreferencia = false): ModoExtendido {
+  const [elegido, setElegido] = useState(() => leerExtendido(almacenLocal()))
+  const extendido = forzado || (!ignorarPreferencia && elegido)
 
   useEffect(() => {
-    guardarExtendido(almacenLocal(), extendido)
-  }, [extendido])
+    guardarExtendido(almacenLocal(), elegido)
+  }, [elegido])
 
   // Mientras ocupa la ventana entera, la página de debajo no se desplaza: un
   // `position: fixed` no impide el desplazamiento del documento, y el gesto de
@@ -44,7 +52,7 @@ export function usePlayerExtendido(): ModoExtendido {
   }, [extendido])
 
   const alternar = useCallback(() => {
-    setExtendido(alternarExtendido)
+    setElegido(alternarExtendido)
   }, [])
 
   return { extendido, alternar }

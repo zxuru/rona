@@ -45,6 +45,7 @@ import { Player } from './Player'
 import { PlayerPlate } from './PlayerPlate'
 import { SourceFallback } from './SourceFallback'
 import { toSafeTracks, tracksFromSource } from './subtitle-tracks'
+import { usePunteroGrueso } from './useDispositivo'
 import { useWatchPage } from './useWatchPage'
 import { WatchEpisodes } from './WatchEpisodes'
 import { type WatchPathOptions, watchPath } from './watch-route'
@@ -149,6 +150,16 @@ export function WatchPage(props: WatchPageProps): ReactNode {
   const [reanudaEn] = useState(() => (posicion > 0 ? posicion : undefined))
   const mostrarReanudar = reanudaEn !== undefined && Math.abs(posicion - reanudaEn) < 0.05
 
+  /**
+   * Reiniciar es un mando de ratón.
+   *
+   * En táctil se va: para volver al principio está la barra de progreso, que se
+   * arrastra con el dedo, y el botón competía por el mismo renglón que la línea de
+   * reanudación sin añadir un camino que la barra no dé. La línea sí se queda: que
+   * sepas dónde continúa es información, no una acción.
+   */
+  const tactil = usePunteroGrueso()
+
   const empezarDeCero = (): void => {
     setPosicion(0)
     if (elementoVideo !== null) elementoVideo.currentTime = 0
@@ -206,10 +217,15 @@ export function WatchPage(props: WatchPageProps): ReactNode {
               {mostrarReanudar ? (
                 <span className="watch__resume">
                   {' · '}
-                  {t(DEFAULT_LOCALE, 'player.resume', { time: formatTime(reanudaEn ?? 0) })}{' '}
-                  <button type="button" className="watch__restart" onClick={empezarDeCero}>
-                    {t(DEFAULT_LOCALE, 'player.resume.restart')}
-                  </button>
+                  {t(DEFAULT_LOCALE, 'player.resume', { time: formatTime(reanudaEn ?? 0) })}
+                  {tactil ? null : (
+                    <>
+                      {' '}
+                      <button type="button" className="watch__restart" onClick={empezarDeCero}>
+                        {t(DEFAULT_LOCALE, 'player.resume.restart')}
+                      </button>
+                    </>
+                  )}
                 </span>
               ) : null}
             </p>

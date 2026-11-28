@@ -15,9 +15,10 @@
  * los avisos están en `usePlayer`; los gestos y la referencia del elemento en
  * `usePlayerGestos`; el menú, la ayuda y la pantalla completa en
  * `usePlayerAjustes`; el modo extendido en `usePlayerExtendido`; los mandos y el
- * ancho de la ventana en `usePlayerMandos`; el arrastre de la barra en
- * `usePlayerBarra`; los subtítulos en `usePlayerSubtitulos`; los controles del
- * sistema en `useMediaSession`; y el teclado en `usePlayerTeclado`, con sus
+ * ancho de la ventana en `usePlayerMandos`; el aparato —puntero y postura— en
+ * `useDispositivo`; el arrastre de la barra en `usePlayerBarra`; los subtítulos en
+ * `usePlayerSubtitulos`; los controles del sistema en `useMediaSession`; y el teclado
+ * en `usePlayerTeclado`, con sus
  * decisiones puras en `player-teclas` y `controls`.
  * Lo que se salta —el intervalo, el destino y el margen— lo decide la pantalla;
  * aquí sólo se ejecuta y se recuerda qué intervalos ya se saltaron, que es
@@ -57,6 +58,7 @@ import {
   type Velocidad,
 } from './storage'
 import { useCompatPaint } from './useCompatPaint'
+import { usePaisaje, usePunteroGrueso } from './useDispositivo'
 import { useMediaSession } from './useMediaSession'
 import { usePictureInPicture } from './usePictureInPicture'
 import { usePlayer } from './usePlayer'
@@ -90,6 +92,18 @@ export function Player(props: PlayerProps): ReactNode {
    * las capas que se ven sobre la imagen.
    */
   const marco = useRef<HTMLDivElement | null>(null)
+
+  /**
+   * El aparato, que decide qué mandos existen.
+   *
+   * En táctil sobran los mandos de escritorio —mpv, el teclado, el volumen del
+   * elemento, el modo extendido manual— porque el aparato ya trae su volumen y no
+   * tiene teclado. Y tumbado, el reproductor ocupa la pantalla solo: pedirle la
+   * pantalla completa al navegador en un giro no se puede —exige un gesto—, así
+   * que lo resuelve el mismo modo extendido que ya era CSS.
+   */
+  const tactil = usePunteroGrueso()
+  const paisaje = usePaisaje()
 
   /**
    * La velocidad, en estado y en el almacén del navegador.
@@ -383,8 +397,8 @@ export function Player(props: PlayerProps): ReactNode {
     dialogoAtajos,
     completa,
   } = usePlayerAjustes(escenario)
-  const extendido = usePlayerExtendido()
-  const mandos = usePlayerMandos(reproduciendo, marco)
+  const extendido = usePlayerExtendido(tactil && paisaje, tactil)
+  const mandos = usePlayerMandos(reproduciendo, marco, tactil)
   const barra = usePlayerBarra({
     positionS: posicionActual,
     durationS: duracionActual,
@@ -578,6 +592,11 @@ export function Player(props: PlayerProps): ReactNode {
    * El menú de ajustes: el volumen cuando no cabe en la fila, el reproductor
    * externo, el modo compatible, los subtítulos y la ayuda del teclado.
    *
+   * En táctil se queda sólo con la velocidad y los subtítulos: el volumen lo
+   * lleva el aparato, mpv no existe, y el modo compatible y la ayuda del teclado
+   * son mandos de una vez que no se van a tocar en un teléfono. El modo
+   * compatible sigue encendiéndose solo si la sonda ve el fallo.
+   *
    * El audio no está aquí: el conmutador de subtitulado y doblado vive fuera del
    * reproductor, en la fila de mandos, y repetirlo en el menú daba dos mandos con
    * el mismo nombre accesible y dos formas de elegir lo mismo. La reproducción
@@ -651,7 +670,7 @@ export function Player(props: PlayerProps): ReactNode {
           <p className="player__note">{t(DEFAULT_LOCALE, 'player.cast.noDevices')}</p>
         ) : null}
 
-        {props.onMpv === undefined ? null : (
+        {props.onMpv === undefined || tactil ? null : (
           <button type="button" className="button player__menu-action" onClick={props.onMpv}>
             {t(DEFAULT_LOCALE, 'player.mpv')}
           </button>
@@ -662,8 +681,12 @@ export function Player(props: PlayerProps): ReactNode {
             mismo estado—, pero aquí dentro no hace falta esconder la
             barra tras el puntero: el menú ya es «donde se toca una vez».
             Sólo hay uno de los dos grupos en el documento: dos mandos con
-            el mismo nombre accesible son un nombre ambiguo. */}
-        {mandos.estrecho ? (
+            el mismo nombre accesible son un nombre ambiguo.
+
+            En táctil no se pinta en ninguna parte: el aparato tiene sus
+            propios botones de volumen y el reproductor deja el elemento al
+            máximo, así que el mando cambiaría una mezcla que nadie oye. */}
+        {mandos.estrecho && !tactil ? (
           <div className="player__menu-block">
             <p className="player__menu-title">{t(DEFAULT_LOCALE, 'player.volume')}</p>
             <div className="player__menu-volume">
@@ -698,15 +721,20 @@ export function Player(props: PlayerProps): ReactNode {
             fotograma puede no verlo: quien está mirando la pantalla en
             negro lo enciende aquí. `aria-pressed` dice si está
             encendido, y el texto no cambia con el estado para que se
-            lea como un interruptor y no como una acción. */}
-        <button
-          type="button"
-          className="button player__menu-action"
-          aria-pressed={pintando}
-          onClick={alternar}
-        >
-          {t(DEFAULT_LOCALE, 'player.compat')}
-        </button>
+            lea como un interruptor y no como una acción.
+
+            En táctil sólo lo enciende la sonda: un mando técnico que se
+            toca una vez en la vida no cabe en el menú del teléfono. */}
+        {tactil ? null : (
+          <button
+            type="button"
+            className="button player__menu-action"
+            aria-pressed={pintando}
+            onClick={alternar}
+          >
+            {t(DEFAULT_LOCALE, 'player.compat')}
+          </button>
+        )}
 
         {enCast ? (
           pistas.length === 0 ? null : (
@@ -748,16 +776,22 @@ export function Player(props: PlayerProps): ReactNode {
           </div>
         )}
 
-        <button
-          type="button"
-          className="button player__menu-action"
-          onClick={() => {
-            cerrarMenu()
-            abrirAyuda()
-          }}
-        >
-          {t(DEFAULT_LOCALE, 'player.keys.open')}
-        </button>
+        {/* La ayuda del teclado no se ofrece donde no hay teclado. El
+            diálogo sigue montado —la tecla `?` de un teclado externo
+            funciona—, pero en el menú del teléfono sería una entrada
+            que abre una lista de teclas que no existen. */}
+        {tactil ? null : (
+          <button
+            type="button"
+            className="button player__menu-action"
+            onClick={() => {
+              cerrarMenu()
+              abrirAyuda()
+            }}
+          >
+            {t(DEFAULT_LOCALE, 'player.keys.open')}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -966,6 +1000,7 @@ export function Player(props: PlayerProps): ReactNode {
             duracionS={duracionActual}
             estrecho={mandos.estrecho}
             compacto={mandos.compacto}
+            tactil={tactil}
             completa={completa}
             extendida={extendido.extendido}
             act={actConCast}

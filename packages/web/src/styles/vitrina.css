@@ -506,10 +506,12 @@
     pointer-events: auto;
   }
 
-  /* 40 px de lado, el mínimo táctil recomendado, para que la fila quepa. */
+  /* 44 px de lado, el objetivo táctil que pide el spec. Estuvo en 40 para que la
+     fila cupiera con el volumen y el modo extendido; ya no están, así que el
+     mando recupera su tamaño y el pulgar acierta sin apuntar. */
   .player__control {
-    min-width: var(--control-size-compact);
-    min-height: var(--control-size-compact);
+    min-width: var(--control-size);
+    min-height: var(--control-size);
     padding: 0 var(--space-1);
   }
 

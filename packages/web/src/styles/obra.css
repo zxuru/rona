@@ -1132,18 +1132,18 @@ body.player-extendido {
  * Transparentes y sin recibir el puntero, pero **en el documento**: con
  * `display: none` el foco del teclado se iría al `body` en mitad de una
  * reproducción, y quien navega con el tabulador perdería el sitio donde estaba.
- * Vuelven al pasar el puntero por el marco —lo hace el componente— y mientras
- * algo de dentro tenga el foco: esconderle el mando enfocado a quien usa el
- * teclado es dejarle pulsando a ciegas.
+ * Vuelven al pasar el puntero por el marco —lo hace el componente—, con el foco
+ * del teclado y mientras el menú está abierto.
+ *
+ * El foco es `:focus-visible` y no `:focus-within`: en táctil, el botón que se
+ * acaba de tocar conserva el foco y con `:focus-within` la barra no se retiraba
+ * nunca —en horizontal, con la banda encima del fotograma, eso era no ver el
+ * video—. El menú abierto sí lleva su regla propia: si no, se apagaba a los dos
+ * segundos de abrirlo y no se podía elegir nada.
  */
 .player__controls[data-oculto="true"] {
   opacity: 0;
   pointer-events: none;
-}
-
-.player__stage:focus-within .player__controls {
-  opacity: 1;
-  pointer-events: auto;
 }
 
 /*
@@ -1156,6 +1156,21 @@ body.player-extendido {
 .player[data-extendido="true"] .player__controls[data-oculto="true"] {
   opacity: 0;
   pointer-events: none;
+}
+
+/*
+ * Y vuelven con el teclado y con el menú abierto, también en extendido.
+ *
+ * Van **después** de la regla del modo extendido y nombran el `data-oculto`: con
+ * la misma especificidad, la última gana, y el extendido es justo el estado en el
+ * que más falta hace que el menú no se apague. En táctil el foco del botón que se
+ * acaba de tocar no cuenta —`:focus-visible` no es `:focus`—, que era lo que
+ * dejaba la banda encima del fotograma para siempre.
+ */
+.player__stage:has(:focus-visible) .player__controls[data-oculto="true"],
+.player__stage:has(.player__menu[data-abierto="true"]) .player__controls[data-oculto="true"] {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /*
@@ -1270,7 +1285,7 @@ body.player-extendido {
   pointer-events: none;
 }
 
-.player__stage:focus-within .player__acciones {
+.player__stage:has(:focus-visible) .player__acciones {
   opacity: 1;
   pointer-events: auto;
 }
@@ -1642,6 +1657,59 @@ body.player-extendido {
   .player__seek .player__range::-webkit-slider-thumb,
   .player__seek .player__range::-moz-range-thumb {
     opacity: 1;
+  }
+}
+
+/*
+ * El reproductor con el dedo.
+ *
+ * El mando mide los 44 px del objetivo táctil —el bloque del teléfono recorta lo
+ * que sobraba a la fila, y en horizontal el valor base ya es ese—; aquí van las
+ * zonas de gesto y el pulsado. El carril recibe el toque en 32 px —el visible
+ * sigue en seis— y el pulgar crece hasta los 24: en horizontal, con la banda
+ * encima del fotograma, el dedo caía fuera del carril y el gesto se lo comía la
+ * página.
+ *
+ * El pulsado encoge un 4 % —`scale(0.96)`, que es la pieza de la casa para que un
+ * mando se sienta pulsado— y `touch-action` quita el retardo del doble toque.
+ */
+@media (pointer: coarse) {
+  .player {
+    --seek-hit: var(--seek-hit-touch);
+    --player-band-height: calc(
+      var(--space-6) +
+      var(--seek-hit-touch) +
+      var(--space-2) +
+      var(--control-size) +
+      var(--space-3)
+    );
+  }
+
+  .player__buttons {
+    gap: var(--space-2);
+  }
+
+  .player__control {
+    touch-action: manipulation;
+  }
+
+  .player__control:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  .player__seek .player__range {
+    touch-action: pan-y;
+  }
+
+  .player__seek .player__range::-webkit-slider-thumb {
+    width: var(--space-5);
+    height: var(--space-5);
+    margin-top: calc((var(--seek-hit-touch) - var(--space-5)) / 2);
+  }
+
+  .player__seek .player__range::-moz-range-thumb {
+    width: var(--space-5);
+    height: var(--space-5);
   }
 }
 

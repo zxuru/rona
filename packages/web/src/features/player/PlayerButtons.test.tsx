@@ -21,6 +21,7 @@ function render(parcial: Partial<PlayerButtonsProps> = {}): string {
       duracionS={1440}
       estrecho={false}
       compacto={false}
+      tactil={false}
       completa={false}
       extendida={false}
       act={() => {}}
@@ -90,6 +91,23 @@ describe('la fila de mandos', () => {
 
     expect(html).not.toContain('class="player__volume"')
     expect(html).not.toContain('aria-label="Volumen"')
+  })
+
+  /**
+   * En táctil sobran dos mandos de escritorio.
+   *
+   * El volumen lo lleva el aparato y el modo extendido lo pone el giro, así que no
+   * hay ninguno de los dos en el documento. No es un escondite con CSS: dos mandos
+   * con el mismo nombre accesible, o uno al que no se puede llegar, son el mismo
+   * problema de fondo.
+   */
+  test('en táctil no hay volumen ni modo extendido', () => {
+    const html = render({ tactil: true })
+
+    expect(html).not.toContain('class="player__volume"')
+    expect(html).not.toContain('aria-label="Volumen"')
+    expect(html).not.toContain('aria-label="Modo extendido"')
+    expect(html).toContain('aria-label="Pantalla completa"')
   })
 
   test('los relojes se leen como tiempos, no como números', () => {

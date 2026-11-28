@@ -42,6 +42,11 @@ export interface PlayerButtonsProps {
   readonly estrecho: boolean
   /** Teléfono: además, no caben los saltos de diez segundos. */
   readonly compacto: boolean
+  /**
+   * Puntero grueso: sobra el volumen —lo lleva el aparato— y el modo extendido
+   * —lo pone el giro—, y se van con los otros mandos de escritorio.
+   */
+  readonly tactil: boolean
   readonly completa: boolean
   readonly extendida: boolean
   readonly act: (accion: PlayerAction) => void
@@ -112,8 +117,9 @@ export function PlayerButtons(props: PlayerButtonsProps): ReactNode {
           en dos pasos —uno dice si suena, la otra cuánto— y la barra aparece al
           pasar por encima o al enfocar, que es cuando se va a usar. En una ventana
           estrecha el grupo entero se muda al menú de ajustes: ocupa el ancho de
-          tres botones y ahí no cabe. */}
-      {props.estrecho ? null : (
+          tres botones y ahí no cabe. En táctil no se pinta en ninguna parte: el
+          volumen lo gobierna el aparato. */}
+      {props.estrecho || props.tactil ? null : (
         <div className="player__volume">
           <button
             type="button"
@@ -162,17 +168,20 @@ export function PlayerButtons(props: PlayerButtonsProps): ReactNode {
       {/* El modo extendido: llena la ventana sin pedir la pantalla completa. Va
           junto al mando de pantalla completa porque son la misma familia —ver más
           grande— y el dibujo de las flechas los distingue: uno recoge el marco del
-          sistema, el otro lo llena. */}
-      <button
-        type="button"
-        className="button player__control"
-        aria-label={rotuloExtendido}
-        title={rotuloExtendido}
-        aria-keyshortcuts="T"
-        onClick={props.onAlternarExtendida}
-      >
-        {props.extendida ? <IconoSalirExtendido /> : <IconoExtendido />}
-      </button>
+          sistema, el otro lo llena. En táctil no se pinta: el giro ya lo pone, y un
+          segundo camino a la misma pantalla sobra. */}
+      {props.tactil ? null : (
+        <button
+          type="button"
+          className="button player__control"
+          aria-label={rotuloExtendido}
+          title={rotuloExtendido}
+          aria-keyshortcuts="T"
+          onClick={props.onAlternarExtendida}
+        >
+          {props.extendida ? <IconoSalirExtendido /> : <IconoExtendido />}
+        </button>
+      )}
 
       <button
         type="button"
