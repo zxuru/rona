@@ -698,6 +698,27 @@ implementan las dos cosas a la vez: se elige una y se documenta el riesgo residu
 | DoS en la LAN contra el listener | Rate limit, cuerpo pequeño, tiempo máximo; no afecta a la app local. |
 | Tailscale/VPN no medido | Documentado como «opcional, no soportado» hasta medirlo. |
 
+### 7.7 VPN en malla (opcional, no implementada)
+
+RoNa no implementa ningún servidor de VPN ni depende de uno. Si el usuario quiere sincronizar
+fuera de casa, puede poner el PC y los dispositivos en una **misma malla** (Tailscale, Headscale o
+equivalente) y usar la sincronización normal:
+
+1. Instalar el cliente de la malla en el PC, el móvil y la TV, con la misma cuenta o el mismo
+   tailnet. RoNa no ve ni guarda esas credenciales.
+2. Encender la sincronización y emparejar como en la LAN. El QR puede llevar la IP de la malla o el
+   nombre de MagicDNS; si el QR lleva la IP de casa, no sirve fuera.
+3. Si mDNS no cruza la malla (lo normal), usar la **IP guardada** o la introducción manual con el
+   nombre MagicDNS. No se promete descubrimiento automático por VPN.
+4. Abrir el puerto del listener de sync en el firewall **sólo para la interfaz de la malla**. No se
+   hace *port forwarding* ni se expone a Internet.
+5. Verificar la huella en el emparejamiento; una VPN no sustituye la autenticación por dispositivo.
+
+**Límites declarados:** no se ha medido si Android 17 trata la interfaz VPN como «red local» para
+`ACCESS_LOCAL_NETWORK`; no se ha medido el consumo de batería ni la latencia; Tailscale es un
+servicio de terceros opcional y RoNa no le manda telemetría. Si no se quiere depender de él, la
+sincronización sigue siendo LAN-only, que es el modo soportado.
+
 ---
 
 ## 8. Experiencia de usuario
